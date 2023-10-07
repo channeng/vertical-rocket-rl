@@ -37,7 +37,7 @@ If VEL_STATE is set to true, the velocities are included:
     - y velocity
     - angular velocity
 all state variables are roughly in the range [-1, 1]
-    
+
 CONTROL INPUTS
 Discrete control inputs are:
     - gimbal left
@@ -47,15 +47,8 @@ Discrete control inputs are:
     - use first control thruster
     - use second control thruster
     - no action
-    
-Continuous control inputs are:
-    - gimbal (left/right)
-    - throttle (up/down)
-    - control thruster (left/right)
-
 """
 
-CONTINUOUS = True
 VEL_STATE = True  # Add velocity info to state
 FPS = 60
 SCALE_S = 0.35  # Temporal Scaling, lower is faster - adjust forces appropriately
@@ -92,9 +85,6 @@ VIEWPORT_W = 500
 H = 1.1 * START_HEIGHT * SCALE_S
 W = float(VIEWPORT_W) / VIEWPORT_H * H
 
-# SMOKE FOR VISUALS
-# MAX_SMOKE_LIFETIME = 2 * FPS
-
 MEAN = np.array(
     [-0.034, -0.15, -0.016, 0.0024, 0.0024, 0.137, -0.02, -0.01, -0.8, 0.002]
 )
@@ -130,7 +120,7 @@ class ContactDetector(contactListener):
 class VerticalRocket(gym.Env):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": FPS}
 
-    def __init__(self, level_number=0, continuous=True, speed_threshold=1):
+    def __init__(self, level_number=0, speed_threshold=1):
         self.level_number = level_number
         self._seed()
         self.viewer = None
@@ -143,7 +133,6 @@ class VerticalRocket(gym.Env):
         self.ship = None
         self.legs = []
         self.state = []
-        self.continuous = continuous
         self.landed = False
         self.landed_fraction = []
         self.good_landings = 0
@@ -162,10 +151,7 @@ class VerticalRocket(gym.Env):
 
         self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
-        if self.continuous:
-            self.action_space = spaces.Box(-1, +1, (3,), dtype=np.float32)
-        else:
-            self.action_space = spaces.Discrete(7)
+        self.action_space = spaces.Discrete(7)
 
         self.reset()
 
@@ -202,7 +188,6 @@ class VerticalRocket(gym.Env):
         self.total_landed_ticks += self.landed_ticks
         self.landed_ticks = 0
         self.stepnumber = 0
-        # self.smoke = []
 
         # self.terrainheigth = self.np_random.uniform(H / 20, H / 10)
         self.terrainheigth = H / 20
@@ -395,36 +380,24 @@ class VerticalRocket(gym.Env):
             self.legs + [self.water] + [self.ship] + self.containers + [self.lander]
         )
 
-        if self.continuous:
-            return self.step([0, 0, 0])[0]
-        else:
-            return self.step(6)[0]
+        return self.step(6)[0]
 
     def step(self, action):
 
         self.force_dir = 0
 
-        if self.continuous:
-            np.clip(action, -1, 1)
-            self.gimbal += action[0] * 0.15 / FPS
-            self.throttle += action[1] * 0.5 / FPS
-            if action[2] > 0.5:
-                self.force_dir = 1
-            elif action[2] < -0.5:
-                self.force_dir = -1
-        else:
-            if action == 0:
-                self.gimbal += 0.01
-            elif action == 1:
-                self.gimbal -= 0.01
-            elif action == 2:
-                self.throttle += 0.01
-            elif action == 3:
-                self.throttle -= 0.01
-            elif action == 4:  # left
-                self.force_dir = -1
-            elif action == 5:  # right
-                self.force_dir = 1
+        if action == 0:
+            self.gimbal += 0.01
+        elif action == 1:
+            self.gimbal -= 0.01
+        elif action == 2:
+            self.throttle += 0.01
+        elif action == 3:
+            self.throttle -= 0.01
+        elif action == 4:  # left
+            self.force_dir = -1
+        elif action == 5:  # right
+            self.force_dir = 1
 
         self.gimbal = np.clip(self.gimbal, -GIMBAL_THRESHOLD, GIMBAL_THRESHOLD)
         self.throttle = np.clip(self.throttle, 0.0, 1.0)
@@ -606,20 +579,6 @@ class VerticalRocket(gym.Env):
             self.fire.add_attr(self.enginetrans)
             self.fire.add_attr(self.rockettrans)
 
-            # smoke = rendering.FilledPolygon(
-            #     (
-            #         (ROCKET_WIDTH / 2, THRUSTER_HEIGHT * 1),
-            #         (ROCKET_WIDTH * 3, THRUSTER_HEIGHT * 1.03),
-            #         (ROCKET_WIDTH * 4, THRUSTER_HEIGHT * 1),
-            #         (ROCKET_WIDTH * 3, THRUSTER_HEIGHT * 0.97),
-            #     )
-            # )
-            # smoke.set_color(*self.sky_color_half_transparent)
-            # self.smokescale = rendering.Transform(scale=(1, 1))
-            # smoke.add_attr(self.smokescale)
-            # smoke.add_attr(self.rockettrans)
-            # self.viewer.add_geom(smoke)
-
             self.gridfins = []
             for i in (-1, 1):
                 finpoly = (
@@ -633,39 +592,6 @@ class VerticalRocket(gym.Env):
                 gridfin.set_color(0.25, 0.25, 0.25)
                 self.gridfins.append(gridfin)
 
-        # if self.stepnumber % round(FPS / 10) == 0 and self.power > 0:
-        #     s = [
-        #         MAX_SMOKE_LIFETIME * self.power,  # total lifetime
-        #         0,  # current lifetime
-        #         self.power * (1 + 0.2 * np.random.random()),  # size
-        #         np.array(self.lander.position)
-        #         + self.power
-        #         * ROCKET_WIDTH
-        #         * 10
-        #         * np.array(
-        #             (
-        #                 np.sin(self.lander.angle + self.gimbal),
-        #                 -np.cos(self.lander.angle + self.gimbal),
-        #             )
-        #         )
-        #         + self.power * 5 * (np.random.random(2) - 0.5),
-        #     ]  # position
-        #     self.smoke.append(s)
-
-        # for s in self.smoke:
-        #     s[1] += 1
-        #     if s[1] > s[0]:
-        #         self.smoke.remove(s)
-        #         continue
-        #     t = rendering.Transform(translation=(s[3][0], s[3][1] + H * s[1] / 2000))
-        #     self.viewer.draw_circle(
-        #         radius=0.05 * s[1] + s[2],
-        #         color=self.sky_color
-        #         + (1 - (2 * s[1] / s[0] - 1) ** 2)
-        #         / 3
-        #         * (self.sky_color_half_transparent - self.sky_color),
-        #     ).add_attr(t)
-
         self.viewer.add_onetime(self.fire)
         for g in self.gridfins:
             self.viewer.add_onetime(g)
@@ -676,12 +602,10 @@ class VerticalRocket(gym.Env):
                 path = [trans * v for v in f.shape.vertices]
                 self.viewer.draw_polygon(path, color=obj.color1)
 
-        for l in zip(self.legs, [-1, 1]):
+        for leg in zip(self.legs, [-1, 1]):
             path = [
-                self.lander.fixtures[0].body.transform
-                * (l[1] * ROCKET_WIDTH / 2, ROCKET_HEIGHT / 8),
-                l[0].fixtures[0].body.transform
-                * (l[1] * compute_leg_length(LEG_LENGTH, self.level_number) * 0.8, 0),
+                self.lander.fixtures[0].body.transform * (leg[1] * ROCKET_WIDTH / 2, ROCKET_HEIGHT / 8),
+                leg[0].fixtures[0].body.transform * (leg[1] * compute_leg_length(LEG_LENGTH, self.level_number) * 0.8, 0),
             ]
             self.viewer.draw_polyline(
                 path, color=self.ship.color1, linewidth=1 if START_HEIGHT > 500 else 2
@@ -700,7 +624,6 @@ class VerticalRocket(gym.Env):
         self.rockettrans.set_rotation(self.lander.angle)
         self.enginetrans.set_rotation(self.gimbal)
         self.firescale.set_scale(newx=1, newy=self.power * np.random.uniform(1, 1.3))
-        # self.smokescale.set_scale(newx=self.force_dir, newy=1)
 
         return self.viewer.render(return_rgb_array=mode == "rgb_array")
 
