@@ -12,13 +12,6 @@ from gym import spaces
 from gym.utils import seeding
 
 
-def compute_leg_length(LEG_LENGTH, level):
-    if level > 2:
-        return LEG_LENGTH * 0.1
-    else:
-        return LEG_LENGTH
-
-
 """
 
 The objective of this environment is to land a rocket on a ship.
@@ -176,6 +169,13 @@ class VerticalRocket(gym.Env):
         self.world.DestroyBody(self.containers[1])
         self.containers = []
 
+    @staticmethod
+    def compute_leg_length(LEG_LENGTH, level):
+        if level > 2:
+            return LEG_LENGTH * 0.1
+        else:
+            return LEG_LENGTH
+
     def reset(self):
         self._destroy()
         self.world.contactListener_keepref = ContactDetector(self)
@@ -245,15 +245,11 @@ class VerticalRocket(gym.Env):
                                     self.helipad_y + SHIP_HEIGHT,
                                 ),
                                 (
-                                    ship_pos
-                                    + side * 0.95 * SHIP_WIDTH / 2
-                                    - side * SHIP_HEIGHT,
+                                    ship_pos + side * 0.95 * SHIP_WIDTH / 2 - side * SHIP_HEIGHT,
                                     self.helipad_y + SHIP_HEIGHT,
                                 ),
                                 (
-                                    ship_pos
-                                    + side * 0.95 * SHIP_WIDTH / 2
-                                    - side * SHIP_HEIGHT,
+                                    ship_pos + side * 0.95 * SHIP_WIDTH / 2 - side * SHIP_HEIGHT,
                                     self.helipad_y,
                                 ),
                             )
@@ -300,7 +296,7 @@ class VerticalRocket(gym.Env):
 
         self.lander.color1 = rgb(230, 230, 230)
 
-        leg_length_modified = compute_leg_length(LEG_LENGTH, self.level_number)
+        leg_length_modified = self.compute_leg_length(LEG_LENGTH, self.level_number)
         for i in [-1, +1]:
             leg = self.world.CreateDynamicBody(
                 position=(initial_x - i * LEG_AWAY, initial_y + ROCKET_WIDTH * 0.2),
@@ -365,10 +361,7 @@ class VerticalRocket(gym.Env):
         )
 
         self.lander.linearVelocity = (
-            -self.np_random.uniform(0, random_velocity_factor)
-            * START_SPEED
-            * (initial_x - W / 2)
-            / W,
+            -self.np_random.uniform(0, random_velocity_factor) * START_SPEED * (initial_x - W / 2) / W,
             -START_SPEED,
         )
 
@@ -484,9 +477,7 @@ class VerticalRocket(gym.Env):
         else:
             # reward shaping
             shaping = (
-                -0.5
-                * abs(distance / 1000)
-                * (distance + speed + (-y_abs_speed) + abs(angle))
+                -0.5 * abs(distance / 1000) * (distance + speed + (-y_abs_speed) + abs(angle))
             )
             shaping += 0.1 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
             if self.prev_shaping is not None:
@@ -605,7 +596,7 @@ class VerticalRocket(gym.Env):
         for leg in zip(self.legs, [-1, 1]):
             path = [
                 self.lander.fixtures[0].body.transform * (leg[1] * ROCKET_WIDTH / 2, ROCKET_HEIGHT / 8),
-                leg[0].fixtures[0].body.transform * (leg[1] * compute_leg_length(LEG_LENGTH, self.level_number) * 0.8, 0),
+                leg[0].fixtures[0].body.transform * (leg[1] * self.compute_leg_length(LEG_LENGTH, self.level_number) * 0.8, 0),
             ]
             self.viewer.draw_polyline(
                 path, color=self.ship.color1, linewidth=1 if START_HEIGHT > 500 else 2
