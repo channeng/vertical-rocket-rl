@@ -42,6 +42,7 @@ Discrete control inputs are:
     - no action
 """
 
+CONTINUOUS = True
 VEL_STATE = True  # Add velocity info to state
 FPS = 60
 SCALE_S = 0.35  # Temporal Scaling, lower is faster - adjust forces appropriately
@@ -113,7 +114,7 @@ class ContactDetector(contactListener):
 class VerticalRocket(gym.Env):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": FPS}
 
-    def __init__(self, level_number=0, speed_threshold=1):
+    def __init__(self, level_number=0, continuous=True, speed_threshold=1):
         self.level_number = level_number
         self._seed()
         self.viewer = None
@@ -126,6 +127,7 @@ class VerticalRocket(gym.Env):
         self.ship = None
         self.legs = []
         self.state = []
+        self.continuous = continuous
         self.landed = False
         self.landed_fraction = []
         self.good_landings = 0
@@ -144,7 +146,10 @@ class VerticalRocket(gym.Env):
 
         self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
-        self.action_space = spaces.Discrete(7)
+        if self.continuous:
+            self.action_space = spaces.Box(-1, +1, (3,), dtype=np.float32)
+        else:
+            self.action_space = spaces.Discrete(7)
 
         self.reset()
 
@@ -373,24 +378,36 @@ class VerticalRocket(gym.Env):
             self.legs + [self.water] + [self.ship] + self.containers + [self.lander]
         )
 
-        return self.step(6)[0]
+        if self.continuous:
+            return self.step([0, 0, 0])[0]
+        else:
+            return self.step(6)[0]
 
     def step(self, action):
 
         self.force_dir = 0
 
-        if action == 0:
-            self.gimbal += 0.01
-        elif action == 1:
-            self.gimbal -= 0.01
-        elif action == 2:
-            self.throttle += 0.01
-        elif action == 3:
-            self.throttle -= 0.01
-        elif action == 4:  # left
-            self.force_dir = -1
-        elif action == 5:  # right
-            self.force_dir = 1
+        if self.continuous:
+            np.clip(action, -1, 1)
+            self.gimbal += action[0] * 0.15 / FPS
+            self.throttle += action[1] * 0.5 / FPS
+            if action[2] > 0.5:
+                self.force_dir = 1
+            elif action[2] < -0.5:
+                self.force_dir = -1
+        else:
+            if action == 0:
+                self.gimbal += 0.01
+            elif action == 1:
+                self.gimbal -= 0.01
+            elif action == 2:
+                self.throttle += 0.01
+            elif action == 3:
+                self.throttle -= 0.01
+            elif action == 4:  # left
+                self.force_dir = -1
+            elif action == 5:  # right
+                self.force_dir = 1
 
         self.gimbal = np.clip(self.gimbal, -GIMBAL_THRESHOLD, GIMBAL_THRESHOLD)
         self.throttle = np.clip(self.throttle, 0.0, 1.0)
