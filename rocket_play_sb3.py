@@ -10,8 +10,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
 args = parser.parse_args()
 save_path = os.path.join("saves", "ppo-" + args.name)
-
-latest_model  =sorted([i for i in os.listdir(save_path) if i.startswith("model_")])[-1]
+print(save_path)
+latest_model  =sorted([i for i in os.listdir(save_path) if i.startswith("best_")])[-1]
 latest_model_path = os.path.join(save_path, latest_model)
 
 print(f"Evaluating model: {latest_model_path}")

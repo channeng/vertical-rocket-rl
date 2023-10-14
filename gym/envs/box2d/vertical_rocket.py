@@ -42,14 +42,14 @@ Discrete control inputs are:
     - no action
 """
 
-CONTINUOUS = True
+CONTINUOUS = False
 VEL_STATE = True  # Add velocity info to state
 FPS = 60
 SCALE_S = 0.35  # Temporal Scaling, lower is faster - adjust forces appropriately
 INITIAL_RANDOM = 0.0  # Random scaling of initial velocity, higher is more difficult
 
-START_HEIGHT = 1000.0
-START_SPEED = 40.0
+START_HEIGHT = 500.0
+START_SPEED = 25.0
 
 # ROCKET
 MIN_THROTTLE = 0.4
