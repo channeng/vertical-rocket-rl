@@ -47,7 +47,7 @@ print(f"mean_reward={mean_reward:.2f} +/- {std_reward}")
 rewards.append((0, mean_reward, std_reward))
 
 # Train
-model.learn(total_timesteps=1_000)
+model.learn(total_timesteps=100_000)
 
 # Eval
 mean_reward, std_reward = evaluate_policy(
