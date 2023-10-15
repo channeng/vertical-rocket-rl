@@ -1,7 +1,8 @@
 import os
 import numpy as np
 import gym
-from stable_baselines3 import PPO
+
+from stable_baselines3 import PPO, A2C
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 
@@ -9,9 +10,10 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
+parser.add_argument("-m", "--method", default="ppo", help="ppo or a2c")
 args = parser.parse_args()
 
-MODEL_NAME = "ppo-" + args.name
+MODEL_NAME = args.method + "-" + args.name
 
 checkpoints_path = os.path.join("checkpoints", MODEL_NAME)
 save_path = os.path.join("saves", MODEL_NAME)
@@ -24,15 +26,21 @@ ENV_ID = "VerticalRocket-v1"
 env = gym.make(ENV_ID)
 eval_env = gym.make(ENV_ID)
 
-model = PPO(
-    "MlpPolicy", env,
-    learning_rate=3e-4, n_steps=500, batch_size=64, n_epochs=20,
-    gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
-    normalize_advantage=True, ent_coef=0, vf_coef=1, max_grad_norm=0.5,
-    use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=500,
-    tensorboard_log=logs_path,
-    verbose=1
-)
+if args.method == "ppo":
+    model = PPO(
+        "MlpPolicy", env,
+        learning_rate=1e-5, n_steps=1000, batch_size=250, n_epochs=10,
+        gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
+        normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
+        use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=100,
+        tensorboard_log=logs_path,
+        verbose=1
+    )
+else:
+    model = A2C(
+        "MlpPolicy", env,
+        tensorboard_log=logs_path,
+        verbose=1)
 
 # Initial eval
 rewards = []
@@ -67,7 +75,7 @@ eval_callback = EvalCallback(
 )
 
 # Train
-train_total_timesteps = 300_000
+train_total_timesteps = 1_000_000
 model.learn(
     total_timesteps=train_total_timesteps,
     callback=[checkpoint_callback, eval_callback])

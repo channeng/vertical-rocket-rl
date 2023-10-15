@@ -42,7 +42,7 @@ Discrete control inputs are:
     - no action
 """
 
-CONTINUOUS = False
+CONTINUOUS = True
 VEL_STATE = True  # Add velocity info to state
 FPS = 60
 SCALE_S = 0.35  # Temporal Scaling, lower is faster - adjust forces appropriately
@@ -494,20 +494,15 @@ class VerticalRocket(gym.Env):
         else:
             # reward shaping
             shaping = (
-                -0.5 * abs(distance / 1000) * (distance + speed + (-y_abs_speed) + abs(angle))
+                -0.5 * (distance + speed + abs(angle)**2)
             )
             shaping += 0.1 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
             self.prev_shaping = shaping
-            if self.legs[0].ground_contact:
-                reward += 100
-            if self.legs[1].ground_contact:
-                reward += 100
+
             if self.landed:
                 self.landed_ticks += 1
-                reward += 1
-
             else:
                 self.landed_ticks = 0
             if self.landed_ticks == FPS:

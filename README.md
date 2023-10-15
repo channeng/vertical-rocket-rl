@@ -70,7 +70,7 @@ To extend the length of the episode, modify `max_episode_steps=1000` in `gym/env
 
 # Training
 
-`python ppo_rocket_sb3.py --name discrete1`
+`python ppo_rocket_sb3.py --name=continuous1mil_new --method=ppo`
 - Don't forget to change training run each time you execute code or otherwise it will overwrite of older files.
 
 Model will be saved to: `saves/ppo-<model_name>/best_model.zip`
@@ -79,11 +79,11 @@ Model will be saved to: `saves/ppo-<model_name>/best_model.zip`
 
 In order to see logs of your train run , you can execute command below
 
-`tensorboard --logdir logs/ --host localhost`
+`tensorboard --logdir=models/ --host localhost`
 
 ## How to replay with best model
 
 Using a saved pre-trained model, run the command: 
-`python rocket_play_sb3.py --name discrete2`
+`python rocket_play_sb3.py --name=continuous1mil_new`
 
 To extend the length of the episode, modify `max_episode_steps` in `gym/envs/__init__.py`.

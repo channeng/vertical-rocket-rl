@@ -4,6 +4,3 @@
 .cache
 .pytest_cache/
 checkpoints/
-eval/
-logs/
-saves/

@@ -1,21 +1,28 @@
 import os
 import gym
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, A2C
 from stable_baselines3.common.evaluation import evaluate_policy
 
 import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
+parser.add_argument("-m", "--method", default="ppo", help="ppo or a2c")
 args = parser.parse_args()
-save_path = os.path.join("saves", "ppo-" + args.name)
-print(save_path)
+
+MODEL_NAME = args.method + "-" + args.name
+
+save_path = os.path.join("models", MODEL_NAME, "saves")
+
 latest_model  =sorted([i for i in os.listdir(save_path) if i.startswith("best_")])[-1]
 latest_model_path = os.path.join(save_path, latest_model)
 
 print(f"Evaluating model: {latest_model_path}")
-model = PPO.load(latest_model_path)
+if args.method == "ppo":
+    model = PPO.load(latest_model_path)
+else:
+    model = A2C.load(latest_model_path)
 
 ENV_ID = "VerticalRocket-v1"
 env = gym.make(ENV_ID)
