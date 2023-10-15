@@ -15,10 +15,10 @@ args = parser.parse_args()
 
 MODEL_NAME = args.method + "-" + args.name
 
-checkpoints_path = os.path.join("checkpoints", MODEL_NAME)
-save_path = os.path.join("saves", MODEL_NAME)
-logs_path = os.path.join("logs", MODEL_NAME)
-eval_path = os.path.join("eval", MODEL_NAME)
+checkpoints_path = os.path.join("models", MODEL_NAME, "checkpoints")
+save_path = os.path.join("models", MODEL_NAME, "saves")
+logs_path = os.path.join("models", MODEL_NAME, "logs")
+eval_path = os.path.join("models", MODEL_NAME, "eval")
 os.makedirs(save_path, exist_ok=True)
 os.makedirs(logs_path, exist_ok=True)
 
@@ -90,21 +90,3 @@ for i in range(len(data["timesteps"])):
         f"mean reward: {mean_reward[i]:.2f}, "
         f"mean ep length: {mean_ep_lengths[i]:.0f}"
     )
-
-
-# Replay
-# obs = env.reset()
-# total_reward = 0.0
-# total_steps = 0
-# for i in range(1000):
-#     env.render()
-#     action, _states = model.predict(obs, deterministic=True)
-#     obs, reward, done, info = env.step(action)
-#     total_reward += reward
-#     total_steps += 1
-#     if done:
-#         obs = env.reset()
-#         break
-
-# print("In %d steps we got %.3f reward" % (total_steps, total_reward))
-# env.close()
