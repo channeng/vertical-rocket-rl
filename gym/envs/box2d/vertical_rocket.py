@@ -474,7 +474,7 @@ class VerticalRocket(gym.Env):
         # if groundcontact and abs(y_abs_speed) > self.speed_threshold:
         #     brokenleg = True
         outside = abs(pos.x - W / 2) > W / 2 or pos.y > H
-        fuelcost = 0.1 * (0 * self.power + abs(self.force_dir)) / FPS
+        fuelcost = 0.4 * (0 * self.power + abs(self.force_dir)) / FPS
         self.landed = (
             self.legs[0].ground_contact
             and self.legs[1].ground_contact

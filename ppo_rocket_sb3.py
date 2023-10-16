@@ -75,7 +75,7 @@ eval_callback = EvalCallback(
 )
 
 # Train
-train_total_timesteps = 1_000_000
+train_total_timesteps = 2_000_000
 model.learn(
     total_timesteps=train_total_timesteps,
     callback=[checkpoint_callback, eval_callback])

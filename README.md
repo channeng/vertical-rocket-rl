@@ -55,7 +55,7 @@ To simplify training, I've set the environment variables as:
   - START_HEIGHT = 500.0
   - START_SPEED = 25.0
 - `gym/envs/__init__.py`
-  - max_episode_steps=500
+  - max_episode_steps=1000
 
 In the original environment, the default environment variables are:
 - `gym/envs/box2d/vertical_rocket.py`
@@ -70,7 +70,7 @@ To extend the length of the episode, modify `max_episode_steps=1000` in `gym/env
 
 # Training
 
-`python ppo_rocket_sb3.py --name=continuous1mil_new --method=ppo`
+`python ppo_rocket_sb3.py --name=continuous2mil_fuelcost4 --method=ppo`
 - Don't forget to change training run each time you execute code or otherwise it will overwrite of older files.
 
 Model will be saved to: `saves/ppo-<model_name>/best_model.zip`
@@ -81,9 +81,13 @@ In order to see logs of your train run , you can execute command below
 
 `tensorboard --logdir=models/ --host localhost`
 
+## Experiment logs
+
+Please update spreadsheet for experiment changes and log results: https://docs.google.com/spreadsheets/d/1tVK17-TUY_JQeDI4Jn2IZCgHolkZiVbYYGlKH6qD1yU/edit#gid=0
+
 ## How to replay with best model
 
 Using a saved pre-trained model, run the command: 
-`python rocket_play_sb3.py --name=continuous1mil_new`
+`python rocket_play_sb3.py --name=continuous2mil_fuelcost4`
 
 To extend the length of the episode, modify `max_episode_steps` in `gym/envs/__init__.py`.
