@@ -1,12 +1,13 @@
 import os
-import numpy as np
+import argparse
+from typing import Callable
+
 import gym
+import numpy as np
 
 from stable_baselines3 import PPO, A2C
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
-
-import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
@@ -26,10 +27,36 @@ ENV_ID = "VerticalRocket-v1"
 env = gym.make(ENV_ID)
 eval_env = gym.make(ENV_ID)
 
+LR_INIT = 1e-5
+LR_FINAL = 1e-6
+
+def linear_schedule(initial_value: float) -> Callable[[float], float]:
+    """
+    Linear learning rate schedule.
+
+    :param initial_value: Initial learning rate.
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        if progress_remaining > 0.2:
+            return LR_INIT
+        return progress_remaining/0.2 * (LR_INIT-LR_FINAL) + LR_FINAL
+
+    return func
+
 if args.method == "ppo":
     model = PPO(
         "MlpPolicy", env,
-        learning_rate=1e-5, n_steps=1000, batch_size=250, n_epochs=10,
+        learning_rate=LR_INIT,
+        # learning_rate=linear_schedule(LR_INIT),
+        n_steps=1000, batch_size=250, n_epochs=10,
         gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
         normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
         use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=100,
@@ -75,9 +102,9 @@ eval_callback = EvalCallback(
 )
 
 # Train
-train_total_timesteps = 2_000_000
+TRAIN_TIMESTEPS = 2_000_000
 model.learn(
-    total_timesteps=train_total_timesteps,
+    total_timesteps=TRAIN_TIMESTEPS,
     callback=[checkpoint_callback, eval_callback])
 
 # Print eval stats
