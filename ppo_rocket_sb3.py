@@ -59,7 +59,7 @@ if args.method == "ppo":
         n_steps=1000, batch_size=250, n_epochs=10,
         gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
         normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
-        use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=100,
+        use_sde=False, sde_sample_freq=200, target_kl=None, stats_window_size=100,
         tensorboard_log=logs_path,
         verbose=1
     )
