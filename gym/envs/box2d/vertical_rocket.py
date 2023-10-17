@@ -118,7 +118,6 @@ class VerticalRocket(gym.Env):
         self.level_number = level_number
         self._seed()
         self.viewer = None
-        self.episode_number = 0
 
         self.world = Box2D.b2World()
         self.water = None
@@ -131,7 +130,6 @@ class VerticalRocket(gym.Env):
         self.landed = False
         self.landed_fraction = []
         self.good_landings = 0
-        self.total_landed_ticks = 0
         self.landed_ticks = 0
         self.done = False
         self.speed_threshold = speed_threshold
@@ -187,17 +185,13 @@ class VerticalRocket(gym.Env):
         self.world.contactListener = self.world.contactListener_keepref
         self.game_over = False
         self.prev_shaping = None
-        self.episode_number += 1
         self.throttle = 0
         self.gimbal = 0.0
-        self.total_landed_ticks += self.landed_ticks
         self.landed_ticks = 0
         self.stepnumber = 0
 
-        # self.terrainheigth = self.np_random.uniform(H / 20, H / 10)
         self.terrainheigth = H / 20
         self.shipheight = self.terrainheigth + SHIP_HEIGHT
-        # ship_pos = self.np_random.uniform(0, SHIP_WIDTH / SCALE) + SHIP_WIDTH / SCALE
         ship_pos = W / 2
         self.helipad_x1 = ship_pos - SHIP_WIDTH / 2
         self.helipad_x2 = self.helipad_x1 + SHIP_WIDTH
@@ -427,10 +421,10 @@ class VerticalRocket(gym.Env):
 
         # control thruster force
         force_pos_c = self.lander.position + THRUSTER_HEIGHT * np.array(
-            (np.sin(self.lander.angle), np.cos(self.lander.angle))
+            (-np.sin(self.lander.angle), np.cos(self.lander.angle))
         )
         force_c = (
-            -self.force_dir * np.cos(self.lander.angle) * SIDE_ENGINE_POWER,
+            self.force_dir * np.cos(self.lander.angle) * SIDE_ENGINE_POWER,
             self.force_dir * np.sin(self.lander.angle) * SIDE_ENGINE_POWER,
         )
         self.lander.ApplyLinearImpulse(impulse=force_c, point=force_pos_c, wake=False)
@@ -438,12 +432,11 @@ class VerticalRocket(gym.Env):
         self.world.Step(1.0 / FPS, 60, 60)
 
         pos = self.lander.position
-        vel_l = np.array(self.lander.linearVelocity) / START_SPEED
-        vel_a = self.lander.angularVelocity
         x_distance = (pos.x - W / 2) / W
         y_distance = (pos.y - self.shipheight) / (H - self.shipheight)
 
         angle = (self.lander.angle / np.pi) % 2
+        # Normalize to [-1, 1]
         if angle > 1:
             angle -= 2
 
@@ -456,9 +449,15 @@ class VerticalRocket(gym.Env):
             2 * (self.throttle - 0.5),
             (self.gimbal / GIMBAL_THRESHOLD),
         ]
+
         if VEL_STATE:
+            vel_l = np.array(self.lander.linearVelocity) / START_SPEED
+            vel_a = self.lander.angularVelocity
+            
             state.extend([vel_l[0], vel_l[1], vel_a])
+        
         self.state = state
+
         # REWARD -------------------------------------------------------------------------------------------------------
         # state variables for reward
         distance = np.linalg.norm(
