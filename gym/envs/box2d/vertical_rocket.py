@@ -502,7 +502,8 @@ class VerticalRocket(gym.Env):
 
             if self.landed:
                 self.landed_ticks += 1
-                reward += 1
+                # 13 1=>100
+                reward += 100
             else:
                 self.landed_ticks = 0
             if self.landed_ticks == FPS:
