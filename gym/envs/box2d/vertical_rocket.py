@@ -501,7 +501,9 @@ class VerticalRocket(gym.Env):
             # Version 18: Penalize the distance to the ship to encourage faster landings.
             # Previous: 1.0 weight
             # Changes: 2.0
-            shaping = -0.5 * (2 * distance + speed + abs(angle) ** 2 + abs(vel_a) ** 2)
+            # Conclusion: The lander hangs in the air.
+            # Version 20: ** 2
+            shaping = -0.5 * (distance ** 2 + speed + abs(angle) ** 2 + abs(vel_a) ** 2)
             shaping += 0.1 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
