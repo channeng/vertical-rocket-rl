@@ -118,6 +118,7 @@ class VerticalRocket(gym.Env):
         self.level_number = level_number
         self._seed()
         self.viewer = None
+        self.episode_number = 0
 
         self.world = Box2D.b2World()
         self.water = None
@@ -130,6 +131,7 @@ class VerticalRocket(gym.Env):
         self.landed = False
         self.landed_fraction = []
         self.good_landings = 0
+        self.total_landed_ticks = 0
         self.landed_ticks = 0
         self.done = False
         self.speed_threshold = speed_threshold
@@ -185,8 +187,10 @@ class VerticalRocket(gym.Env):
         self.world.contactListener = self.world.contactListener_keepref
         self.game_over = False
         self.prev_shaping = None
+        self.episode_number += 1
         self.throttle = 0
         self.gimbal = 0.0
+        self.total_landed_ticks += self.landed_ticks
         self.landed_ticks = 0
         self.stepnumber = 0
 
@@ -432,6 +436,8 @@ class VerticalRocket(gym.Env):
         self.world.Step(1.0 / FPS, 60, 60)
 
         pos = self.lander.position
+        vel_l = np.array(self.lander.linearVelocity) / START_SPEED
+        vel_a = self.lander.angularVelocity
         x_distance = (pos.x - W / 2) / W
         y_distance = (pos.y - self.shipheight) / (H - self.shipheight)
 
@@ -451,9 +457,6 @@ class VerticalRocket(gym.Env):
         ]
 
         if VEL_STATE:
-            vel_l = np.array(self.lander.linearVelocity) / START_SPEED
-            vel_a = self.lander.angularVelocity
-            
             state.extend([vel_l[0], vel_l[1], vel_a])
         
         self.state = state
@@ -465,58 +468,55 @@ class VerticalRocket(gym.Env):
         )  # weight x position more
         speed = np.linalg.norm(vel_l)
         groundcontact = self.legs[0].ground_contact or self.legs[1].ground_contact
-        y_abs_speed = vel_l[1] * np.sin(angle)
-        brokenleg = False
         brokenleg = (
-            self.legs[0].joint.angle < 0 or self.legs[1].joint.angle > -0
+            self.legs[0].joint.angle < -0.025 or self.legs[1].joint.angle > 0.025
         ) and groundcontact
-        # if groundcontact and abs(y_abs_speed) > self.speed_threshold:
-        #     brokenleg = True
         outside = abs(pos.x - W / 2) > W / 2 or pos.y > H
-        fuelcost = 0.4 * (0 * self.power + abs(self.force_dir)) / FPS
-        self.landed = (
-            self.legs[0].ground_contact
-            and self.legs[1].ground_contact
-            and speed < self.speed_threshold
+        
+        landed = (
+            self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.1
         )
         done = False
-        self.done = False
 
+        # Version 16: Penalize the fuel consumption to encourage faster landings
+        # Previous: 0.1 weight
+        # Changes: 0.4 weight => The agent prefers to crash fast to save fuel.
+        # Version 17: 0.2 weight
+        # Conclusion: It prefers to crash fast to save fuel. Roll back to 0.1.
+        fuelcost = 0.1 * (0.5 * self.power + abs(self.force_dir)) / FPS
         reward = -fuelcost
 
         if outside or brokenleg:
             self.game_over = True
 
         if self.game_over:
+            # Version 15: Penalize game over: crashing or flying out of bounds
+            # Previous: No penalty for game over
+            # Changes: -1.0 reward for game over
+            # Conclusion: This discourages the agent from escaping the environment. However, the agent is afraid of landing to avoid crashing.
+            reward = -1.0
             done = True
-            self.done = True
         else:
             # reward shaping
-            shaping = (
-                -0.5 * (distance + speed + abs(angle)**2)
-            )
+            # Version 18: Penalize the distance to the ship to encourage faster landings.
+            # Previous: 1.0 weight
+            # Changes: 2.0
+            shaping = -0.5 * (2 * distance + speed + abs(angle) ** 2 + abs(vel_a) ** 2)
             shaping += 0.1 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
             self.prev_shaping = shaping
 
-            if self.landed:
+            if landed:
                 self.landed_ticks += 1
-                # 13 1=>100
-                reward += 100
             else:
                 self.landed_ticks = 0
             if self.landed_ticks == FPS:
-                self.good_landings += 1
+                reward = 1.0
                 done = True
-                self.done = True
 
-        if x_distance < 0.90 * (SHIP_WIDTH / 2):
-            reward += 0.01
         if done:
             reward += max(-1, 0 - 2 * (speed + distance + abs(angle) + abs(vel_a)))
-        elif not groundcontact:
-            reward -= 0.25 / FPS
 
         reward = np.clip(reward, -1, 1)
 
