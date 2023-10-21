@@ -6,3 +6,5 @@ register(
     max_episode_steps=1000,
     reward_threshold=8,
 )
+
+print(">>>>>>>>>>>>>>>>>>>> Registered VerticalRocket-v1 <<<<<<<<<<<<<<<<<<<<")
