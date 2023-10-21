@@ -38,7 +38,7 @@ print(f"mean_reward={mean_reward:.2f} +/- {std_reward}")
 obs = env.reset()
 total_reward = 0.0
 total_steps = 0
-for i in range(1000):
+for i in range(1500):
     env.render()
     action, _states = model.predict(obs, deterministic=True)
     obs, reward, done, info = env.step(action)

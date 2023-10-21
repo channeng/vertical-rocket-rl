@@ -47,7 +47,7 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
         """
         if progress_remaining > 0.2:
             return LR_INIT
-        return progress_remaining/0.2 * (LR_INIT-LR_FINAL) + LR_FINAL
+        return progress_remaining / 0.2 * (LR_INIT-LR_FINAL) + LR_FINAL
 
     return func
 
@@ -56,7 +56,7 @@ if args.method == "ppo":
         "MlpPolicy", env,
         learning_rate=LR_INIT,
         # learning_rate=linear_schedule(LR_INIT),
-        n_steps=1000, batch_size=250, n_epochs=10,
+        n_steps=1500, batch_size=250, n_epochs=10,
         gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
         normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
         use_sde=False, sde_sample_freq=200, target_kl=None, stats_window_size=100,
@@ -102,7 +102,7 @@ eval_callback = EvalCallback(
 )
 
 # Train
-TRAIN_TIMESTEPS = 2_000_000
+TRAIN_TIMESTEPS = 1_700_000
 model.learn(
     total_timesteps=TRAIN_TIMESTEPS,
     callback=[checkpoint_callback, eval_callback])

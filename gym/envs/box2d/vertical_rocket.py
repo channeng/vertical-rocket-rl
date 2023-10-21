@@ -482,7 +482,7 @@ class VerticalRocket(gym.Env):
         # Previous: 0.1 weight
         # Changes: 0.4 weight => The agent prefers to crash fast to save fuel.
         # Version 17: 0.2 weight
-        # Conclusion: It prefers to crash fast to save fuel. Roll back to 0.1.
+        # FAILED: It prefers to crash fast to save fuel. Roll back to 0.1.
         fuelcost = 0.1 * (0.5 * self.power + abs(self.force_dir)) / FPS
         reward = -fuelcost
 
@@ -503,7 +503,8 @@ class VerticalRocket(gym.Env):
             # Changes: 2.0
             # Conclusion: The lander hangs in the air.
             # Version 20: ** 2
-            shaping = -0.5 * (distance ** 2 + speed + abs(angle) ** 2 + abs(vel_a) ** 2)
+            # FAILED: The lander hangs in the air.
+            shaping = -0.5 * (distance + speed + abs(angle) ** 2 + abs(vel_a) ** 2)
             shaping += 0.1 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
@@ -521,6 +522,10 @@ class VerticalRocket(gym.Env):
             reward += max(-1, 0 - 2 * (speed + distance + abs(angle) + abs(vel_a)))
 
         reward = np.clip(reward, -1, 1)
+
+        # Version 21:
+        if landed and done:
+            reward = 10.0
 
         # REWARD -------------------------------------------------------------------------------------------------------
 
