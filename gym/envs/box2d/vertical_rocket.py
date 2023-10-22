@@ -48,7 +48,7 @@ FPS = 60
 SCALE_S = 0.35  # Temporal Scaling, lower is faster - adjust forces appropriately
 INITIAL_RANDOM = 0.0  # Random scaling of initial velocity, higher is more difficult
 
-START_HEIGHT = 500.0
+START_HEIGHT = 400.0
 START_SPEED = 25.0
 
 # ROCKET
@@ -463,66 +463,53 @@ class VerticalRocket(gym.Env):
 
         # REWARD -------------------------------------------------------------------------------------------------------
         # state variables for reward
-        reward = 0
-
-        distance = np.linalg.norm(
-            (3 * x_distance, y_distance)
-        )  # weight x position more
+        outside = abs(pos.x - W / 2) > W / 2 or pos.y > H
         
-        # Version 27: Encourage the agent to land in the middle of the ship faster.
-        # FAILED
-        # reward -= distance / FPS
-
-        speed = np.linalg.norm(vel_l)
-
         groundcontact = self.legs[0].ground_contact or self.legs[1].ground_contact
         brokenleg = (
             self.legs[0].joint.angle < -0.025 or self.legs[1].joint.angle > 0.025
         ) and groundcontact
-        outside = abs(pos.x - W / 2) > W / 2 or pos.y > H
         
-        landed = (
-            self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.1
-        )
         done = False
 
-        # Version 16: Penalize the fuel consumption to encourage faster landings
-        # Previous: 0.1 weight
-        # Changes: 0.4 weight => The agent prefers to crash fast to save fuel.
-        # Version 17: 0.2 weight
-        # FAILED: It prefers to crash fast to save fuel. Roll back to 0.1.
+        reward = 0
+
         fuelcost = 0.1 * (0.5 * self.power + abs(self.force_dir)) / FPS
         reward -= fuelcost
 
-        if outside or brokenleg:
-            # Version 26: Penalize going out of bounds
-            # Thoughts: May not work when changing the environment size.
-            # if outside:
-            #     reward -= 1.0
-                
-            self.game_over = True
+        distance = np.linalg.norm((3 * x_distance, y_distance))
+        speed = np.linalg.norm(vel_l)
 
-        if self.game_over:
-            # Version 15: Penalize game over: crashing or flying out of bounds
-            # Previous: No penalty for game over
-            # Changes: -1.0 reward for game over
-            # Conclusion: This discourages the agent from escaping the environment. However, the agent is afraid of landing to avoid crashing.
-            # FAILED
+        info = {}
+
+        if outside:
             done = True
+            info['is_success'] = False
+            print('Outside!')
+        elif brokenleg:
+            done = True
+            info['is_success'] = False
+            print('Broken leg!')
+        # Crash into the sea
+        elif self.game_over:
+            done = True
+            info['is_success'] = False
+            print('Crashed!')
         else:
-            # reward shaping
-            # Version 18: Penalize the distance to the ship to encourage faster landings.
-            # Previous: 1.0 weight
-            # Changes: 2.0
-            # Conclusion: The lander hangs in the air.
-            # Version 20: ** 2
-            # FAILED: The lander hangs in the air.
-            shaping = -0.5 * (distance + speed + abs(angle) ** 2 + abs(vel_a) ** 2)
-            shaping += 0.1 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
+            # Encourage the rocket to quickly stabilize its orientation.
+            shaping = -0.5 * (abs(angle) ** 2 + abs(vel_a) ** 2)
+            
+            # Encourage the rocket to quickly navigate to the ship's center.
+            shaping -= 0.5 * distance
+            
+            # Reward for each leg touching the ground from a non-touching state in the previous step.
+            shaping += 0.25 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
+            
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
             self.prev_shaping = shaping
 
+            landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.1
             if landed:
                 self.landed_ticks += 1
             else:
@@ -530,22 +517,20 @@ class VerticalRocket(gym.Env):
             if self.landed_ticks == FPS:
                 reward = 1.0
                 done = True
+                info['is_success'] = True
+                print('Successful landing!')
 
         if done:
-            reward += max(-1, 0 - 2 * (speed + distance + abs(angle) + abs(vel_a)))
+            reward += max(-1, -5.0 * (5.0 * speed + 5.0 * distance + abs(angle) + abs(vel_a)))
 
         reward = np.clip(reward, -1, 1)
-
-        # Version 21:
-        if landed and not brokenleg and done:
-            reward = 10.0
 
         # REWARD -------------------------------------------------------------------------------------------------------
 
         self.stepnumber += 1
 
         state = (state - MEAN[: len(state)]) / VAR[: len(state)]
-        return np.array(state), reward, done, {}
+        return np.array(state), reward, done, info
 
     def render(self, mode="human", close=False):
         if close:

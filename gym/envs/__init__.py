@@ -4,7 +4,6 @@ import gym.envs.box2d.vertical_rocket
 register(
     id='VerticalRocket-v1',
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
-    # Version 22: 1000 -> 1500
     max_episode_steps=1500,
     reward_threshold=8,
 )
