@@ -6,8 +6,9 @@ import gymnasium as gym
 import numpy as np
 
 from stable_baselines3 import PPO, A2C
-from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
@@ -25,10 +26,11 @@ os.makedirs(logs_path, exist_ok=True)
 
 ENV_ID = "VerticalRocket-v1"
 env = gym.make(ENV_ID)
-eval_env = gym.make(ENV_ID)
+eval_env = Monitor(gym.make(ENV_ID))
 
 LR_INIT = 1e-5
 LR_FINAL = 1e-6
+
 
 def linear_schedule(initial_value: float) -> Callable[[float], float]:
     """
@@ -50,6 +52,7 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
         return progress_remaining / 0.2 * (LR_INIT-LR_FINAL) + LR_FINAL
 
     return func
+
 
 if args.method == "ppo":
     model = PPO(
@@ -85,11 +88,11 @@ rewards.append((0, mean_reward, std_reward))
 # Callbacks
 frequency = 20_000
 checkpoint_callback = CheckpointCallback(
-  save_freq=frequency,
-  save_path=checkpoints_path,
-  name_prefix="ppo-" + args.name,
-  save_replay_buffer=True,
-  save_vecnormalize=True,
+    save_freq=frequency,
+    save_path=checkpoints_path,
+    name_prefix="ppo-" + args.name,
+    save_replay_buffer=True,
+    save_vecnormalize=True,
 )
 eval_callback = EvalCallback(
     eval_env,

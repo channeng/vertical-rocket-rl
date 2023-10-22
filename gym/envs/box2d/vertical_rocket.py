@@ -82,7 +82,8 @@ MEAN = np.array(
     [-0.034, -0.15, -0.016, 0.0024, 0.0024, 0.137, -0.02, -0.01, -0.8, 0.002]
 )
 VAR = np.sqrt(
-    np.array([0.08, 0.33, 0.0073, 0.0023, 0.0023, 0.8, 0.085, 0.0088, 0.063, 0.076])
+    np.array([0.08, 0.33, 0.0073, 0.0023, 0.0023,
+             0.8, 0.085, 0.0088, 0.063, 0.076])
 )
 
 
@@ -113,8 +114,9 @@ class ContactDetector(contactListener):
 class VerticalRocket(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": FPS}
 
-    def __init__(self, level_number=0, continuous=True, speed_threshold=1, render_mode="human"):
+    def __init__(self, level_number=0, continuous=True, speed_threshold=1):
         super(VerticalRocket, self).__init__()
+
         self.level_number = level_number
         self.viewer = None
         self.episode_number = 0
@@ -294,10 +296,12 @@ class VerticalRocket(gym.Env):
 
         self.lander.color1 = rgb(230, 230, 230)
 
-        leg_length_modified = self.compute_leg_length(LEG_LENGTH, self.level_number)
+        leg_length_modified = self.compute_leg_length(
+            LEG_LENGTH, self.level_number)
         for i in [-1, +1]:
             leg = self.world.CreateDynamicBody(
-                position=(initial_x - i * LEG_AWAY, initial_y + ROCKET_WIDTH * 0.2),
+                position=(initial_x - i * LEG_AWAY,
+                          initial_y + ROCKET_WIDTH * 0.2),
                 angle=(i * BASE_ANGLE),
                 fixtures=fixtureDef(
                     shape=polygonShape(
@@ -332,7 +336,8 @@ class VerticalRocket(gym.Env):
                 bodyA=self.lander,
                 bodyB=leg,
                 anchorA=(i * LEG_AWAY, ROCKET_HEIGHT / 8),
-                anchorB=leg.fixtures[0].body.transform * (i * leg_length_modified, 0),
+                anchorB=leg.fixtures[0].body.transform *
+                (i * leg_length_modified, 0),
                 collideConnected=False,
                 frequencyHz=0.01,
                 dampingRatio=0.9,
@@ -359,7 +364,8 @@ class VerticalRocket(gym.Env):
         )
 
         self.lander.linearVelocity = (
-            -np.random.uniform(0, random_velocity_factor) * START_SPEED * (initial_x - W / 2) / W,
+            -np.random.uniform(0, random_velocity_factor) *
+            START_SPEED * (initial_x - W / 2) / W,
             -START_SPEED,
         )
 
@@ -368,7 +374,8 @@ class VerticalRocket(gym.Env):
         )
 
         self.drawlist = (
-            self.legs + [self.water] + [self.ship] + self.containers + [self.lander]
+            self.legs + [self.water] + [self.ship] +
+            self.containers + [self.lander]
         )
 
         if self.continuous:
@@ -415,8 +422,10 @@ class VerticalRocket(gym.Env):
         # main engine force
         force_pos = (self.lander.position[0], self.lander.position[1])
         force = (
-            -np.sin(self.lander.angle + self.gimbal) * MAIN_ENGINE_POWER * self.power,
-            np.cos(self.lander.angle + self.gimbal) * MAIN_ENGINE_POWER * self.power,
+            -np.sin(self.lander.angle + self.gimbal) *
+            MAIN_ENGINE_POWER * self.power,
+            np.cos(self.lander.angle + self.gimbal) *
+            MAIN_ENGINE_POWER * self.power,
         )
         self.lander.ApplyForce(force=force, point=force_pos, wake=False)
 
@@ -428,7 +437,8 @@ class VerticalRocket(gym.Env):
             self.force_dir * np.cos(self.lander.angle) * SIDE_ENGINE_POWER,
             self.force_dir * np.sin(self.lander.angle) * SIDE_ENGINE_POWER,
         )
-        self.lander.ApplyLinearImpulse(impulse=force_c, point=force_pos_c, wake=False)
+        self.lander.ApplyLinearImpulse(
+            impulse=force_c, point=force_pos_c, wake=False)
 
         self.world.Step(1.0 / FPS, 60, 60)
 
@@ -455,11 +465,11 @@ class VerticalRocket(gym.Env):
 
         if VEL_STATE:
             state.extend([vel_l[0], vel_l[1], vel_a])
-        
+
         self.state = state
 
         # REWARD -------------------------------------------------------------------------------------------------------
-        
+
         done = False
         reward = 0
 
@@ -469,12 +479,12 @@ class VerticalRocket(gym.Env):
         distance = np.linalg.norm((3 * x_distance, y_distance))
         speed = np.linalg.norm(vel_l)
 
-        info = {}
+        info = {'is_success': False}
 
         outside = abs(pos.x - W / 2) > 2.0 * W or pos.y > 2.0 * H
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
-            self.legs[0].joint.angle < -0.2 or self.legs[1].joint.angle > 0.2
+            self.legs[0].joint.angle < -0.05 or self.legs[1].joint.angle > 0.05
         ) and ground_contact
 
         if outside:
@@ -494,16 +504,17 @@ class VerticalRocket(gym.Env):
         else:
             # Encourage the rocket to quickly stabilize its orientation.
             shaping = -0.5 * (abs(angle) ** 2 + abs(vel_a) ** 2)
-            
+
             # Encourage the rocket to quickly navigate to the ship's center.
             shaping -= 0.5 * distance
 
             # Encourage the rocket to quickly reduce its speed.
             shaping -= 0.5 * speed
-            
+
             # Reward for each leg touching the ground from a non-touching state in the previous step.
-            shaping += 0.25 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
-            
+            shaping += 0.25 * \
+                (self.legs[0].ground_contact + self.legs[1].ground_contact)
+
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
             self.prev_shaping = shaping
@@ -521,7 +532,8 @@ class VerticalRocket(gym.Env):
 
         if done:
             # print('Speed: ' + str(speed))
-            reward += max(-1, -2.0 * (speed + distance + abs(angle) + abs(vel_a)))
+            reward += max(-1, -2.0 * (speed + distance +
+                          abs(angle) + abs(vel_a)))
         else:
             reward = np.clip(reward, -1, 1)
 
@@ -529,7 +541,7 @@ class VerticalRocket(gym.Env):
 
         self.stepnumber += 1
 
-        return np.array(state).astype(np.float32), reward, done, False, {}
+        return np.array(state).astype(np.float32), reward, done, False, info
 
     def render(self, mode="human", close=False):
         if close:
@@ -580,7 +592,8 @@ class VerticalRocket(gym.Env):
             )
             self.fire.set_color(*rgb(255, 230, 107))
             self.firescale = rendering.Transform(scale=(1, 1))
-            self.firetrans = rendering.Transform(translation=(0, -ENGINE_HEIGHT))
+            self.firetrans = rendering.Transform(
+                translation=(0, -ENGINE_HEIGHT))
             self.fire.add_attr(self.firescale)
             self.fire.add_attr(self.firetrans)
             self.fire.add_attr(self.enginetrans)
@@ -611,8 +624,11 @@ class VerticalRocket(gym.Env):
 
         for leg in zip(self.legs, [-1, 1]):
             path = [
-                self.lander.fixtures[0].body.transform * (leg[1] * ROCKET_WIDTH / 2, ROCKET_HEIGHT / 8),
-                leg[0].fixtures[0].body.transform * (leg[1] * self.compute_leg_length(LEG_LENGTH, self.level_number) * 0.8, 0),
+                self.lander.fixtures[0].body.transform *
+                (leg[1] * ROCKET_WIDTH / 2, ROCKET_HEIGHT / 8),
+                leg[0].fixtures[0].body.transform *
+                (leg[1] * self.compute_leg_length(LEG_LENGTH,
+                 self.level_number) * 0.8, 0),
             ]
             self.viewer.draw_polyline(
                 path, color=self.ship.color1, linewidth=1 if START_HEIGHT > 500 else 2
@@ -630,12 +646,14 @@ class VerticalRocket(gym.Env):
         self.rockettrans.set_translation(*self.lander.position)
         self.rockettrans.set_rotation(self.lander.angle)
         self.enginetrans.set_rotation(self.gimbal)
-        self.firescale.set_scale(newx=1, newy=self.power * np.random.uniform(1, 1.3))
+        self.firescale.set_scale(
+            newx=1, newy=self.power * np.random.uniform(1, 1.3))
 
         return self.viewer.render(return_rgb_array=mode == "rgb_array")
 
     def close(self):
         pass
+
 
 def rgb(r, g, b):
     return float(r) / 255, float(g) / 255, float(b) / 255

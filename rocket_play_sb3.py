@@ -2,8 +2,9 @@ import os
 import gymnasium as gym
 
 from stable_baselines3 import PPO, A2C
-from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 
 import argparse
 
@@ -27,7 +28,7 @@ else:
     model = A2C.load(latest_model_path)
 
 ENV_ID = "VerticalRocket-v1"
-env = gym.make(ENV_ID)
+env = Monitor(gym.make(ENV_ID))
 
 check_env(env)
 
