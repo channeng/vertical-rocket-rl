@@ -463,10 +463,18 @@ class VerticalRocket(gym.Env):
 
         # REWARD -------------------------------------------------------------------------------------------------------
         # state variables for reward
+        reward = 0
+
         distance = np.linalg.norm(
             (3 * x_distance, y_distance)
         )  # weight x position more
+        
+        # Version 27: Encourage the agent to land in the middle of the ship faster.
+        # FAILED
+        # reward -= distance / FPS
+
         speed = np.linalg.norm(vel_l)
+
         groundcontact = self.legs[0].ground_contact or self.legs[1].ground_contact
         brokenleg = (
             self.legs[0].joint.angle < -0.025 or self.legs[1].joint.angle > 0.025
@@ -484,9 +492,14 @@ class VerticalRocket(gym.Env):
         # Version 17: 0.2 weight
         # FAILED: It prefers to crash fast to save fuel. Roll back to 0.1.
         fuelcost = 0.1 * (0.5 * self.power + abs(self.force_dir)) / FPS
-        reward = -fuelcost
+        reward -= fuelcost
 
         if outside or brokenleg:
+            # Version 26: Penalize going out of bounds
+            # Thoughts: May not work when changing the environment size.
+            # if outside:
+            #     reward -= 1.0
+                
             self.game_over = True
 
         if self.game_over:
@@ -494,7 +507,7 @@ class VerticalRocket(gym.Env):
             # Previous: No penalty for game over
             # Changes: -1.0 reward for game over
             # Conclusion: This discourages the agent from escaping the environment. However, the agent is afraid of landing to avoid crashing.
-            reward = -1.0
+            # FAILED
             done = True
         else:
             # reward shaping
@@ -524,7 +537,7 @@ class VerticalRocket(gym.Env):
         reward = np.clip(reward, -1, 1)
 
         # Version 21:
-        if landed and done:
+        if landed and not brokenleg and done:
             reward = 10.0
 
         # REWARD -------------------------------------------------------------------------------------------------------
