@@ -2,7 +2,7 @@ import os
 import argparse
 from typing import Callable
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 from stable_baselines3 import PPO, A2C

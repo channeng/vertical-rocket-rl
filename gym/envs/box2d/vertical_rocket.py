@@ -7,10 +7,9 @@ from Box2D.b2 import (
     distanceJointDef,
     contactListener,
 )
-import gym
-from gym import spaces
-from gym.utils import seeding
 
+import gymnasium as gym
+from gymnasium import spaces
 
 """
 
@@ -112,11 +111,11 @@ class ContactDetector(contactListener):
 
 
 class VerticalRocket(gym.Env):
-    metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": FPS}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": FPS}
 
-    def __init__(self, level_number=0, continuous=True, speed_threshold=1):
+    def __init__(self, level_number=0, continuous=True, speed_threshold=1, render_mode="human"):
+        super(VerticalRocket, self).__init__()
         self.level_number = level_number
-        self._seed()
         self.viewer = None
         self.episode_number = 0
 
@@ -153,10 +152,6 @@ class VerticalRocket(gym.Env):
 
         self.reset()
 
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
     def _destroy(self):
         if not self.water:
             return
@@ -181,7 +176,7 @@ class VerticalRocket(gym.Env):
         else:
             return LEG_LENGTH
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         self._destroy()
         self.world.contactListener_keepref = ContactDetector(self)
         self.world.contactListener = self.world.contactListener_keepref
@@ -364,7 +359,7 @@ class VerticalRocket(gym.Env):
         )
 
         self.lander.linearVelocity = (
-            -self.np_random.uniform(0, random_velocity_factor) * START_SPEED * (initial_x - W / 2) / W,
+            -np.random.uniform(0, random_velocity_factor) * START_SPEED * (initial_x - W / 2) / W,
             -START_SPEED,
         )
 
@@ -377,9 +372,11 @@ class VerticalRocket(gym.Env):
         )
 
         if self.continuous:
-            return self.step([0, 0, 0])[0]
+            obs, _, _, _, info = self.step([0, 0, 0])
+            return obs, info
         else:
-            return self.step(6)[0]
+            obs, _, _, _, info = self.step(6)
+            return obs, info
 
     def step(self, action):
 
@@ -462,16 +459,8 @@ class VerticalRocket(gym.Env):
         self.state = state
 
         # REWARD -------------------------------------------------------------------------------------------------------
-        # state variables for reward
-        outside = abs(pos.x - W / 2) > W / 2 or pos.y > H
-        
-        groundcontact = self.legs[0].ground_contact or self.legs[1].ground_contact
-        brokenleg = (
-            self.legs[0].joint.angle < -0.025 or self.legs[1].joint.angle > 0.025
-        ) and groundcontact
         
         done = False
-
         reward = 0
 
         fuelcost = 0.1 * (0.5 * self.power + abs(self.force_dir)) / FPS
@@ -482,25 +471,35 @@ class VerticalRocket(gym.Env):
 
         info = {}
 
+        outside = abs(pos.x - W / 2) > 2.0 * W or pos.y > 2.0 * H
+        ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
+        broken_leg = (
+            self.legs[0].joint.angle < -0.2 or self.legs[1].joint.angle > 0.2
+        ) and ground_contact
+
         if outside:
             done = True
             info['is_success'] = False
-            print('Outside!')
-        elif brokenleg:
+            # print('Outside!')
+        elif self.game_over or (y_distance < 0.0 and abs(pos.x - W / 2) > W / 2):
+            reward = -1.0
             done = True
             info['is_success'] = False
-            print('Broken leg!')
-        # Crash into the sea
-        elif self.game_over:
+            # print('Crashed!')
+        elif broken_leg:
+            reward = -1.0
             done = True
             info['is_success'] = False
-            print('Crashed!')
+            # print('Broken leg!')
         else:
             # Encourage the rocket to quickly stabilize its orientation.
             shaping = -0.5 * (abs(angle) ** 2 + abs(vel_a) ** 2)
             
             # Encourage the rocket to quickly navigate to the ship's center.
             shaping -= 0.5 * distance
+
+            # Encourage the rocket to quickly reduce its speed.
+            shaping -= 0.5 * speed
             
             # Reward for each leg touching the ground from a non-touching state in the previous step.
             shaping += 0.25 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
@@ -518,19 +517,19 @@ class VerticalRocket(gym.Env):
                 reward = 1.0
                 done = True
                 info['is_success'] = True
-                print('Successful landing!')
+                # print('Successful landing!')
 
         if done:
-            reward += max(-1, -5.0 * (5.0 * speed + 5.0 * distance + abs(angle) + abs(vel_a)))
-
-        reward = np.clip(reward, -1, 1)
+            # print('Speed: ' + str(speed))
+            reward += max(-1, -2.0 * (speed + distance + abs(angle) + abs(vel_a)))
+        else:
+            reward = np.clip(reward, -1, 1)
 
         # REWARD -------------------------------------------------------------------------------------------------------
 
         self.stepnumber += 1
 
-        state = (state - MEAN[: len(state)]) / VAR[: len(state)]
-        return np.array(state), reward, done, info
+        return np.array(state).astype(np.float32), reward, done, False, {}
 
     def render(self, mode="human", close=False):
         if close:
@@ -635,6 +634,8 @@ class VerticalRocket(gym.Env):
 
         return self.viewer.render(return_rgb_array=mode == "rgb_array")
 
+    def close(self):
+        pass
 
 def rgb(r, g, b):
     return float(r) / 255, float(g) / 255, float(b) / 255
