@@ -7,6 +7,7 @@ import numpy as np
 
 from stable_baselines3 import PPO, A2C
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 
@@ -25,7 +26,7 @@ os.makedirs(save_path, exist_ok=True)
 os.makedirs(logs_path, exist_ok=True)
 
 ENV_ID = "VerticalRocket-v1"
-env = gym.make(ENV_ID)
+env = make_vec_env(ENV_ID, n_envs=4)
 eval_env = Monitor(gym.make(ENV_ID))
 
 LR_INIT = 1e-5

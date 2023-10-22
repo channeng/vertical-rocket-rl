@@ -18,7 +18,8 @@ MODEL_NAME = args.method + "-" + args.name
 save_path = os.path.join("models", MODEL_NAME, "saves")
 logs_path = os.path.join("models", MODEL_NAME, "logs_eval")
 
-latest_model  =sorted([i for i in os.listdir(save_path) if i.startswith("best_")])[-1]
+latest_model = sorted([i for i in os.listdir(
+    save_path) if i.startswith("best_")])[-1]
 latest_model_path = os.path.join(save_path, latest_model)
 
 print(f"Evaluating model: {latest_model_path}")
@@ -34,7 +35,7 @@ check_env(env)
 
 mean_reward, std_reward = evaluate_policy(
     model,
-	env,
+    env,
     n_eval_episodes=10,
     deterministic=True,
 )
