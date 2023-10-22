@@ -473,8 +473,9 @@ class VerticalRocket(gym.Env):
         done = False
         reward = 0
 
-        fuelcost = 0.1 * (0.5 * self.power + abs(self.force_dir)) / FPS
-        reward -= fuelcost
+        # fuel_cost = 0.1 * (0.0 * self.power + abs(self.force_dir)) / FPS
+        fuel_cost = 0.1 / FPS
+        reward -= fuel_cost
 
         distance = np.linalg.norm((3 * x_distance, y_distance))
         speed = np.linalg.norm(vel_l)
@@ -512,7 +513,7 @@ class VerticalRocket(gym.Env):
             shaping -= 0.5 * speed
 
             # Reward for each leg touching the ground from a non-touching state in the previous step.
-            shaping += 0.25 * \
+            shaping += 0.1 * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
             if self.prev_shaping is not None:
