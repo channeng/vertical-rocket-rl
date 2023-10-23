@@ -474,7 +474,8 @@ class VerticalRocket(gym.Env):
         reward = 0
 
         # fuel_cost = 0.1 * (0.0 * self.power + abs(self.force_dir)) / FPS
-        fuel_cost = 0.1 / FPS
+        # Too large => free-falling agent to save fuel (stop using all engine forces to save fuel).
+        fuel_cost = 0.4 / FPS
         reward -= fuel_cost
 
         distance = np.linalg.norm((3 * x_distance, y_distance))
@@ -485,7 +486,7 @@ class VerticalRocket(gym.Env):
         outside = abs(pos.x - W / 2) > 2.0 * W or pos.y > 2.0 * H
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
-            self.legs[0].joint.angle < -0.05 or self.legs[1].joint.angle > 0.05
+            self.legs[0].joint.angle < -0.1 or self.legs[1].joint.angle > 0.1
         ) and ground_contact
 
         if outside:
@@ -503,14 +504,19 @@ class VerticalRocket(gym.Env):
             info['is_success'] = False
             # print('Broken leg!')
         else:
+            # The main engine force affects the orientation and angular velocity of the rocket.
+            # If the penalty is too large, the agent is discouraged from using the main engine force.
+            # As a consequence, the rocket will be free-falling (least changes in orientation and angular velocity).
+            # If the penalty is too small, the agent is not centivised enough
+            # to stabilize the orientation and reduce the angular velocity.
             # Encourage the rocket to quickly stabilize its orientation.
-            shaping = -0.5 * (abs(angle) ** 2 + abs(vel_a) ** 2)
-
-            # Encourage the rocket to quickly navigate to the ship's center.
-            shaping -= 0.5 * distance
+            shaping = -0.5 * abs(angle)**2 - 0.75 * abs(vel_a)**2
 
             # Encourage the rocket to quickly reduce its speed.
             shaping -= 0.5 * speed
+
+            # Encourage the rocket to quickly navigate to the ship's center.
+            shaping -= 0.5 * distance
 
             # Reward for each leg touching the ground from a non-touching state in the previous step.
             shaping += 0.1 * \
@@ -526,7 +532,7 @@ class VerticalRocket(gym.Env):
             else:
                 self.landed_ticks = 0
             if self.landed_ticks == FPS:
-                reward = 1.0
+                reward = 10.0
                 done = True
                 info['is_success'] = True
                 # print('Successful landing!')
