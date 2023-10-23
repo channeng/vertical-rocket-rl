@@ -42,10 +42,10 @@ Discrete control inputs are:
 """
 
 CONTINUOUS = True
-VEL_STATE = True  # Add velocity info to state
+VEL_STATE = True        # Add velocity info to state
 FPS = 60
-SCALE_S = 0.35  # Temporal Scaling, lower is faster - adjust forces appropriately
-INITIAL_RANDOM = 0.0  # Random scaling of initial velocity, higher is more difficult
+SCALE_S = 0.35          # Temporal Scaling, lower is faster - adjust forces appropriately
+INITIAL_RANDOM = 0.0    # Random scaling of initial velocity, higher is more difficult
 
 START_HEIGHT = 400.0
 START_SPEED = 25.0
@@ -264,7 +264,6 @@ class VerticalRocket(gym.Env):
         self.ship.color1 = (0.2, 0.2, 0.2)
 
         def initial_rocket_pos(level):
-
             if level > 0:
                 initial_x = W / 2 + W * np.random.uniform(-0.3, 0.3)
                 initial_y = H * 0.95
@@ -282,7 +281,7 @@ class VerticalRocket(gym.Env):
                     vertices=(
                         (-ROCKET_WIDTH / 2, 0),
                         (+ROCKET_WIDTH / 2, 0),
-                        (ROCKET_WIDTH / 2, +ROCKET_HEIGHT),
+                        (+ROCKET_WIDTH / 2, +ROCKET_HEIGHT),
                         (-ROCKET_WIDTH / 2, +ROCKET_HEIGHT),
                     )
                 ),
@@ -391,8 +390,8 @@ class VerticalRocket(gym.Env):
 
         if self.continuous:
             np.clip(action, -1, 1)
-            self.gimbal += action[0] * 0.15 / FPS
-            self.throttle += action[1] * 0.5 / FPS
+            self.gimbal += action[0] * 0.6 / FPS
+            self.throttle += action[1] * 0.6 / FPS
             if action[2] > 0.5:
                 self.force_dir = 1
             elif action[2] < -0.5:
@@ -434,7 +433,7 @@ class VerticalRocket(gym.Env):
             (-np.sin(self.lander.angle), np.cos(self.lander.angle))
         )
         force_c = (
-            self.force_dir * np.cos(self.lander.angle) * SIDE_ENGINE_POWER,
+            -self.force_dir * np.cos(self.lander.angle) * SIDE_ENGINE_POWER,
             self.force_dir * np.sin(self.lander.angle) * SIDE_ENGINE_POWER,
         )
         self.lander.ApplyLinearImpulse(
@@ -475,7 +474,7 @@ class VerticalRocket(gym.Env):
 
         # fuel_cost = 0.1 * (0.0 * self.power + abs(self.force_dir)) / FPS
         # Too large => free-falling agent to save fuel (stop using all engine forces to save fuel).
-        fuel_cost = 0.4 / FPS
+        fuel_cost = 0.0 / FPS
         reward -= fuel_cost
 
         distance = np.linalg.norm((3 * x_distance, y_distance))
@@ -494,23 +493,23 @@ class VerticalRocket(gym.Env):
             info['is_success'] = False
             # print('Outside!')
         elif self.game_over or (y_distance < 0.0 and abs(pos.x - W / 2) > W / 2):
-            reward = -1.0
             done = True
             info['is_success'] = False
             # print('Crashed!')
         elif broken_leg:
-            reward = -1.0
             done = True
             info['is_success'] = False
             # print('Broken leg!')
         else:
+            shaping = 0
             # The main engine force affects the orientation and angular velocity of the rocket.
             # If the penalty is too large, the agent is discouraged from using the main engine force.
             # As a consequence, the rocket will be free-falling (least changes in orientation and angular velocity).
             # If the penalty is too small, the agent is not centivised enough
             # to stabilize the orientation and reduce the angular velocity.
             # Encourage the rocket to quickly stabilize its orientation.
-            shaping = -0.5 * abs(angle)**2 - 0.75 * abs(vel_a)**2
+            shaping -= 0.5 * abs(angle)**2
+            shaping -= 0.5 * abs(vel_a)**2
 
             # Encourage the rocket to quickly reduce its speed.
             shaping -= 0.5 * speed
@@ -538,7 +537,6 @@ class VerticalRocket(gym.Env):
                 # print('Successful landing!')
 
         if done:
-            # print('Speed: ' + str(speed))
             reward += max(-1, -2.0 * (speed + distance +
                           abs(angle) + abs(vel_a)))
         else:
@@ -548,7 +546,7 @@ class VerticalRocket(gym.Env):
 
         self.stepnumber += 1
 
-        return np.array(state).astype(np.float32), reward, done, False, info
+        return np.array(state).astype(np.float32), reward, done, False, {}
 
     def render(self, mode="human", close=False):
         if close:
