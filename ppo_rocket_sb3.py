@@ -27,10 +27,12 @@ os.makedirs(logs_path, exist_ok=True)
 
 ENV_ID = "VerticalRocket-v1"
 env = make_vec_env(ENV_ID, n_envs=4)
-eval_env = Monitor(gym.make(ENV_ID))
 
-LR_INIT = 1e-5
-LR_FINAL = 1e-6
+eval_env = gym.make(ENV_ID)
+eval_env = Monitor(eval_env)
+
+LR_INIT = 3e-4
+LR_FINAL = 1e-5
 
 
 def linear_schedule(initial_value: float) -> Callable[[float], float]:
@@ -50,7 +52,7 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
         """
         if progress_remaining > 0.2:
             return LR_INIT
-        return progress_remaining / 0.2 * (LR_INIT-LR_FINAL) + LR_FINAL
+        return progress_remaining / 0.2 * (LR_INIT - LR_FINAL) + LR_FINAL
 
     return func
 
@@ -60,10 +62,10 @@ if args.method == "ppo":
         "MlpPolicy", env,
         learning_rate=LR_INIT,
         # learning_rate=linear_schedule(LR_INIT),
-        n_steps=1500, batch_size=250, n_epochs=10,
+        n_steps=2048, batch_size=128, n_epochs=10,
         gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
         normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
-        use_sde=False, sde_sample_freq=200, target_kl=None, stats_window_size=100,
+        use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=100,
         tensorboard_log=logs_path,
         verbose=1
     )

@@ -78,14 +78,6 @@ VIEWPORT_W = 500
 H = 1.1 * START_HEIGHT * SCALE_S
 W = float(VIEWPORT_W) / VIEWPORT_H * H
 
-MEAN = np.array(
-    [-0.034, -0.15, -0.016, 0.0024, 0.0024, 0.137, -0.02, -0.01, -0.8, 0.002]
-)
-VAR = np.sqrt(
-    np.array([0.08, 0.33, 0.0073, 0.0023, 0.0023,
-             0.8, 0.085, 0.0088, 0.063, 0.076])
-)
-
 
 class ContactDetector(contactListener):
     def __init__(self, env):
@@ -135,6 +127,7 @@ class VerticalRocket(gym.Env):
         self.total_landed_ticks = 0
         self.landed_ticks = 0
         self.done = False
+        self.prev_distance = None
         self.speed_threshold = speed_threshold
         almost_inf = 9999
         high = np.array(
@@ -184,6 +177,7 @@ class VerticalRocket(gym.Env):
         self.world.contactListener = self.world.contactListener_keepref
         self.game_over = False
         self.prev_shaping = None
+        self.prev_distance = None
         self.episode_number += 1
         self.throttle = 0
         self.gimbal = 0.0
@@ -202,10 +196,10 @@ class VerticalRocket(gym.Env):
             fixtures=fixtureDef(
                 shape=polygonShape(
                     vertices=(
-                        (0, 0),
-                        (W, 0),
-                        (W, self.terrainheigth),
-                        (0, self.terrainheigth),
+                        (-W, 0),
+                        (2.0 * W, 0),
+                        (2.0 * W, self.terrainheigth),
+                        (-W, self.terrainheigth),
                     )
                 ),
                 friction=0.1,
@@ -369,7 +363,7 @@ class VerticalRocket(gym.Env):
         )
 
         self.lander.angularVelocity = (1 + random_velocity_factor) * np.random.uniform(
-            -1, 1
+            -1.0, 1.0
         )
 
         self.drawlist = (
@@ -434,7 +428,7 @@ class VerticalRocket(gym.Env):
         )
         force_c = (
             -self.force_dir * np.cos(self.lander.angle) * SIDE_ENGINE_POWER,
-            self.force_dir * np.sin(self.lander.angle) * SIDE_ENGINE_POWER,
+            -self.force_dir * np.sin(self.lander.angle) * SIDE_ENGINE_POWER,
         )
         self.lander.ApplyLinearImpulse(
             impulse=force_c, point=force_pos_c, wake=False)
@@ -474,11 +468,11 @@ class VerticalRocket(gym.Env):
 
         # fuel_cost = 0.1 * (0.0 * self.power + abs(self.force_dir)) / FPS
         # Too large => free-falling agent to save fuel (stop using all engine forces to save fuel).
-        fuel_cost = 0.0 / FPS
+        fuel_cost = 0.15 / FPS
         reward -= fuel_cost
 
-        distance = np.linalg.norm((3 * x_distance, y_distance))
-        speed = np.linalg.norm(vel_l)
+        distance = np.linalg.norm((3.0 * x_distance, y_distance))
+        speed = np.linalg.norm((vel_l[0], vel_l[1]))
 
         info = {'is_success': False}
 
@@ -491,11 +485,12 @@ class VerticalRocket(gym.Env):
         if outside:
             done = True
             info['is_success'] = False
-            # print('Outside!')
+            print('Outside!')
         elif self.game_over or (y_distance < 0.0 and abs(pos.x - W / 2) > W / 2):
             done = True
             info['is_success'] = False
             # print('Crashed!')
+
         elif broken_leg:
             done = True
             info['is_success'] = False
@@ -512,10 +507,12 @@ class VerticalRocket(gym.Env):
             shaping -= 0.5 * abs(vel_a)**2
 
             # Encourage the rocket to quickly reduce its speed.
-            shaping -= 0.5 * speed
+            # shaping -= 0.5 * speed
+            shaping -= 0.5 * speed**2
 
             # Encourage the rocket to quickly navigate to the ship's center.
             shaping -= 0.5 * distance
+            # shaping -= 0.5 * distance**2
 
             # Reward for each leg touching the ground from a non-touching state in the previous step.
             shaping += 0.1 * \
@@ -524,6 +521,10 @@ class VerticalRocket(gym.Env):
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
             self.prev_shaping = shaping
+
+            if self.prev_distance is not None and self.prev_distance > distance:
+                reward += 0.01
+            self.prev_distance = distance
 
             landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.1
             if landed:
@@ -534,10 +535,10 @@ class VerticalRocket(gym.Env):
                 reward = 10.0
                 done = True
                 info['is_success'] = True
-                # print('Successful landing!')
+                print('Successful landing!')
 
         if done:
-            reward += max(-1, -2.0 * (speed + distance +
+            reward += max(-3.0, -2.0 * (speed + distance +
                           abs(angle) + abs(vel_a)))
         else:
             reward = np.clip(reward, -1, 1)
@@ -546,7 +547,7 @@ class VerticalRocket(gym.Env):
 
         self.stepnumber += 1
 
-        return np.array(state).astype(np.float32), reward, done, False, {}
+        return np.array(state).astype(np.float32), reward, done, False, info
 
     def render(self, mode="human", close=False):
         if close:
