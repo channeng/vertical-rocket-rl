@@ -1,8 +1,10 @@
 import os
-import gym
+import gymnasium as gym
 
 from stable_baselines3 import PPO, A2C
+from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 
 import argparse
 
@@ -14,8 +16,10 @@ args = parser.parse_args()
 MODEL_NAME = args.method + "-" + args.name
 
 save_path = os.path.join("models", MODEL_NAME, "saves")
+logs_path = os.path.join("models", MODEL_NAME, "logs_eval")
 
-latest_model  =sorted([i for i in os.listdir(save_path) if i.startswith("best_")])[-1]
+latest_model = sorted([i for i in os.listdir(
+    save_path) if i.startswith("best_")])[-1]
 latest_model_path = os.path.join(save_path, latest_model)
 
 print(f"Evaluating model: {latest_model_path}")
@@ -25,23 +29,25 @@ else:
     model = A2C.load(latest_model_path)
 
 ENV_ID = "VerticalRocket-v1"
-env = gym.make(ENV_ID)
+env = Monitor(gym.make(ENV_ID))
+
+check_env(env)
 
 mean_reward, std_reward = evaluate_policy(
     model,
-	env,
+    env,
     n_eval_episodes=10,
     deterministic=True,
 )
 print(f"mean_reward={mean_reward:.2f} +/- {std_reward}")
 
-obs = env.reset()
+obs, _ = env.reset()
 total_reward = 0.0
 total_steps = 0
-for i in range(1000):
+for i in range(1500):
     env.render()
     action, _states = model.predict(obs, deterministic=True)
-    obs, reward, done, info = env.step(action)
+    obs, reward, done, _, info = env.step(action)
     total_reward += reward
     total_steps += 1
     if done:

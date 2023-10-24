@@ -2,12 +2,14 @@ import os
 import argparse
 from typing import Callable
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 from stable_baselines3 import PPO, A2C
-from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
@@ -24,11 +26,14 @@ os.makedirs(save_path, exist_ok=True)
 os.makedirs(logs_path, exist_ok=True)
 
 ENV_ID = "VerticalRocket-v1"
-env = gym.make(ENV_ID)
-eval_env = gym.make(ENV_ID)
+env = make_vec_env(ENV_ID, n_envs=4)
 
-LR_INIT = 1e-5
-LR_FINAL = 1e-6
+eval_env = gym.make(ENV_ID)
+eval_env = Monitor(eval_env)
+
+LR_INIT = 3e-4
+LR_FINAL = 1e-5
+
 
 def linear_schedule(initial_value: float) -> Callable[[float], float]:
     """
@@ -47,19 +52,20 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
         """
         if progress_remaining > 0.2:
             return LR_INIT
-        return progress_remaining/0.2 * (LR_INIT-LR_FINAL) + LR_FINAL
+        return progress_remaining / 0.2 * (LR_INIT - LR_FINAL) + LR_FINAL
 
     return func
+
 
 if args.method == "ppo":
     model = PPO(
         "MlpPolicy", env,
         learning_rate=LR_INIT,
         # learning_rate=linear_schedule(LR_INIT),
-        n_steps=1000, batch_size=250, n_epochs=10,
+        n_steps=2048, batch_size=128, n_epochs=10,
         gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
         normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
-        use_sde=False, sde_sample_freq=200, target_kl=None, stats_window_size=100,
+        use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=100,
         tensorboard_log=logs_path,
         verbose=1
     )
@@ -85,11 +91,11 @@ rewards.append((0, mean_reward, std_reward))
 # Callbacks
 frequency = 20_000
 checkpoint_callback = CheckpointCallback(
-  save_freq=frequency,
-  save_path=checkpoints_path,
-  name_prefix="ppo-" + args.name,
-  save_replay_buffer=True,
-  save_vecnormalize=True,
+    save_freq=frequency,
+    save_path=checkpoints_path,
+    name_prefix="ppo-" + args.name,
+    save_replay_buffer=True,
+    save_vecnormalize=True,
 )
 eval_callback = EvalCallback(
     eval_env,
@@ -102,7 +108,7 @@ eval_callback = EvalCallback(
 )
 
 # Train
-TRAIN_TIMESTEPS = 2_000_000
+TRAIN_TIMESTEPS = 1_800_000
 model.learn(
     total_timesteps=TRAIN_TIMESTEPS,
     callback=[checkpoint_callback, eval_callback])

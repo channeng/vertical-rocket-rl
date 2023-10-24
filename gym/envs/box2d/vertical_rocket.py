@@ -7,10 +7,9 @@ from Box2D.b2 import (
     distanceJointDef,
     contactListener,
 )
-import gym
-from gym import spaces
-from gym.utils import seeding
 
+import gymnasium as gym
+from gymnasium import spaces
 
 """
 
@@ -43,12 +42,12 @@ Discrete control inputs are:
 """
 
 CONTINUOUS = True
-VEL_STATE = True  # Add velocity info to state
+VEL_STATE = True        # Add velocity info to state
 FPS = 60
-SCALE_S = 0.35  # Temporal Scaling, lower is faster - adjust forces appropriately
-INITIAL_RANDOM = 0.0  # Random scaling of initial velocity, higher is more difficult
+SCALE_S = 0.35          # Temporal Scaling, lower is faster - adjust forces appropriately
+INITIAL_RANDOM = 0.0    # Random scaling of initial velocity, higher is more difficult
 
-START_HEIGHT = 500.0
+START_HEIGHT = 400.0
 START_SPEED = 25.0
 
 # ROCKET
@@ -79,13 +78,6 @@ VIEWPORT_W = 500
 H = 1.1 * START_HEIGHT * SCALE_S
 W = float(VIEWPORT_W) / VIEWPORT_H * H
 
-MEAN = np.array(
-    [-0.034, -0.15, -0.016, 0.0024, 0.0024, 0.137, -0.02, -0.01, -0.8, 0.002]
-)
-VAR = np.sqrt(
-    np.array([0.08, 0.33, 0.0073, 0.0023, 0.0023, 0.8, 0.085, 0.0088, 0.063, 0.076])
-)
-
 
 class ContactDetector(contactListener):
     def __init__(self, env):
@@ -112,11 +104,12 @@ class ContactDetector(contactListener):
 
 
 class VerticalRocket(gym.Env):
-    metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": FPS}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": FPS}
 
     def __init__(self, level_number=0, continuous=True, speed_threshold=1):
+        super(VerticalRocket, self).__init__()
+
         self.level_number = level_number
-        self._seed()
         self.viewer = None
         self.episode_number = 0
 
@@ -134,6 +127,7 @@ class VerticalRocket(gym.Env):
         self.total_landed_ticks = 0
         self.landed_ticks = 0
         self.done = False
+        self.prev_distance = None
         self.speed_threshold = speed_threshold
         almost_inf = 9999
         high = np.array(
@@ -152,10 +146,6 @@ class VerticalRocket(gym.Env):
             self.action_space = spaces.Discrete(7)
 
         self.reset()
-
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
 
     def _destroy(self):
         if not self.water:
@@ -181,12 +171,13 @@ class VerticalRocket(gym.Env):
         else:
             return LEG_LENGTH
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         self._destroy()
         self.world.contactListener_keepref = ContactDetector(self)
         self.world.contactListener = self.world.contactListener_keepref
         self.game_over = False
         self.prev_shaping = None
+        self.prev_distance = None
         self.episode_number += 1
         self.throttle = 0
         self.gimbal = 0.0
@@ -205,10 +196,10 @@ class VerticalRocket(gym.Env):
             fixtures=fixtureDef(
                 shape=polygonShape(
                     vertices=(
-                        (0, 0),
-                        (W, 0),
-                        (W, self.terrainheigth),
-                        (0, self.terrainheigth),
+                        (-W, 0),
+                        (2.0 * W, 0),
+                        (2.0 * W, self.terrainheigth),
+                        (-W, self.terrainheigth),
                     )
                 ),
                 friction=0.1,
@@ -267,7 +258,6 @@ class VerticalRocket(gym.Env):
         self.ship.color1 = (0.2, 0.2, 0.2)
 
         def initial_rocket_pos(level):
-
             if level > 0:
                 initial_x = W / 2 + W * np.random.uniform(-0.3, 0.3)
                 initial_y = H * 0.95
@@ -285,7 +275,7 @@ class VerticalRocket(gym.Env):
                     vertices=(
                         (-ROCKET_WIDTH / 2, 0),
                         (+ROCKET_WIDTH / 2, 0),
-                        (ROCKET_WIDTH / 2, +ROCKET_HEIGHT),
+                        (+ROCKET_WIDTH / 2, +ROCKET_HEIGHT),
                         (-ROCKET_WIDTH / 2, +ROCKET_HEIGHT),
                     )
                 ),
@@ -299,10 +289,12 @@ class VerticalRocket(gym.Env):
 
         self.lander.color1 = rgb(230, 230, 230)
 
-        leg_length_modified = self.compute_leg_length(LEG_LENGTH, self.level_number)
+        leg_length_modified = self.compute_leg_length(
+            LEG_LENGTH, self.level_number)
         for i in [-1, +1]:
             leg = self.world.CreateDynamicBody(
-                position=(initial_x - i * LEG_AWAY, initial_y + ROCKET_WIDTH * 0.2),
+                position=(initial_x - i * LEG_AWAY,
+                          initial_y + ROCKET_WIDTH * 0.2),
                 angle=(i * BASE_ANGLE),
                 fixtures=fixtureDef(
                     shape=polygonShape(
@@ -337,7 +329,8 @@ class VerticalRocket(gym.Env):
                 bodyA=self.lander,
                 bodyB=leg,
                 anchorA=(i * LEG_AWAY, ROCKET_HEIGHT / 8),
-                anchorB=leg.fixtures[0].body.transform * (i * leg_length_modified, 0),
+                anchorB=leg.fixtures[0].body.transform *
+                (i * leg_length_modified, 0),
                 collideConnected=False,
                 frequencyHz=0.01,
                 dampingRatio=0.9,
@@ -364,22 +357,26 @@ class VerticalRocket(gym.Env):
         )
 
         self.lander.linearVelocity = (
-            -self.np_random.uniform(0, random_velocity_factor) * START_SPEED * (initial_x - W / 2) / W,
+            -np.random.uniform(0, random_velocity_factor) *
+            START_SPEED * (initial_x - W / 2) / W,
             -START_SPEED,
         )
 
         self.lander.angularVelocity = (1 + random_velocity_factor) * np.random.uniform(
-            -1, 1
+            -1.0, 1.0
         )
 
         self.drawlist = (
-            self.legs + [self.water] + [self.ship] + self.containers + [self.lander]
+            self.legs + [self.water] + [self.ship] +
+            self.containers + [self.lander]
         )
 
         if self.continuous:
-            return self.step([0, 0, 0])[0]
+            obs, _, _, _, info = self.step([0, 0, 0])
+            return obs, info
         else:
-            return self.step(6)[0]
+            obs, _, _, _, info = self.step(6)
+            return obs, info
 
     def step(self, action):
 
@@ -387,8 +384,8 @@ class VerticalRocket(gym.Env):
 
         if self.continuous:
             np.clip(action, -1, 1)
-            self.gimbal += action[0] * 0.15 / FPS
-            self.throttle += action[1] * 0.5 / FPS
+            self.gimbal += action[0] * 0.6 / FPS
+            self.throttle += action[1] * 0.6 / FPS
             if action[2] > 0.5:
                 self.force_dir = 1
             elif action[2] < -0.5:
@@ -418,8 +415,10 @@ class VerticalRocket(gym.Env):
         # main engine force
         force_pos = (self.lander.position[0], self.lander.position[1])
         force = (
-            -np.sin(self.lander.angle + self.gimbal) * MAIN_ENGINE_POWER * self.power,
-            np.cos(self.lander.angle + self.gimbal) * MAIN_ENGINE_POWER * self.power,
+            -np.sin(self.lander.angle + self.gimbal) *
+            MAIN_ENGINE_POWER * self.power,
+            np.cos(self.lander.angle + self.gimbal) *
+            MAIN_ENGINE_POWER * self.power,
         )
         self.lander.ApplyForce(force=force, point=force_pos, wake=False)
 
@@ -428,10 +427,11 @@ class VerticalRocket(gym.Env):
             (-np.sin(self.lander.angle), np.cos(self.lander.angle))
         )
         force_c = (
-            self.force_dir * np.cos(self.lander.angle) * SIDE_ENGINE_POWER,
-            self.force_dir * np.sin(self.lander.angle) * SIDE_ENGINE_POWER,
+            -self.force_dir * np.cos(self.lander.angle) * SIDE_ENGINE_POWER,
+            -self.force_dir * np.sin(self.lander.angle) * SIDE_ENGINE_POWER,
         )
-        self.lander.ApplyLinearImpulse(impulse=force_c, point=force_pos_c, wake=False)
+        self.lander.ApplyLinearImpulse(
+            impulse=force_c, point=force_pos_c, wake=False)
 
         self.world.Step(1.0 / FPS, 60, 60)
 
@@ -458,74 +458,96 @@ class VerticalRocket(gym.Env):
 
         if VEL_STATE:
             state.extend([vel_l[0], vel_l[1], vel_a])
-        
+
         self.state = state
 
         # REWARD -------------------------------------------------------------------------------------------------------
-        # state variables for reward
-        distance = np.linalg.norm(
-            (3 * x_distance, y_distance)
-        )  # weight x position more
-        speed = np.linalg.norm(vel_l)
-        groundcontact = self.legs[0].ground_contact or self.legs[1].ground_contact
-        brokenleg = (
-            self.legs[0].joint.angle < -0.025 or self.legs[1].joint.angle > 0.025
-        ) and groundcontact
-        outside = abs(pos.x - W / 2) > W / 2 or pos.y > H
-        
-        landed = (
-            self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.1
-        )
+
         done = False
+        reward = 0
 
-        # Version 16: Penalize the fuel consumption to encourage faster landings
-        # Previous: 0.1 weight
-        # Changes: 0.4 weight => The agent prefers to crash fast to save fuel.
-        # Version 17: 0.2 weight
-        # Conclusion: It prefers to crash fast to save fuel. Roll back to 0.1.
-        fuelcost = 0.1 * (0.5 * self.power + abs(self.force_dir)) / FPS
-        reward = -fuelcost
+        # fuel_cost = 0.1 * (0.0 * self.power + abs(self.force_dir)) / FPS
+        # Too large => free-falling agent to save fuel (stop using all engine forces to save fuel).
+        fuel_cost = 0.15 / FPS
+        reward -= fuel_cost
 
-        if outside or brokenleg:
-            self.game_over = True
+        distance = np.linalg.norm((3.0 * x_distance, y_distance))
+        speed = np.linalg.norm((vel_l[0], vel_l[1]))
 
-        if self.game_over:
-            # Version 15: Penalize game over: crashing or flying out of bounds
-            # Previous: No penalty for game over
-            # Changes: -1.0 reward for game over
-            # Conclusion: This discourages the agent from escaping the environment. However, the agent is afraid of landing to avoid crashing.
-            reward = -1.0
+        info = {'is_success': False}
+
+        outside = abs(pos.x - W / 2) > 2.0 * W or pos.y > 2.0 * H
+        ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
+        broken_leg = (
+            self.legs[0].joint.angle < -0.1 or self.legs[1].joint.angle > 0.1
+        ) and ground_contact
+
+        if outside:
             done = True
+            info['is_success'] = False
+            print('Outside!')
+        elif self.game_over or (y_distance < 0.0 and abs(pos.x - W / 2) > W / 2):
+            done = True
+            info['is_success'] = False
+            # print('Crashed!')
+
+        elif broken_leg:
+            done = True
+            info['is_success'] = False
+            # print('Broken leg!')
         else:
-            # reward shaping
-            # Version 18: Penalize the distance to the ship to encourage faster landings.
-            # Previous: 1.0 weight
-            # Changes: 2.0
-            shaping = -0.5 * (2 * distance + speed + abs(angle) ** 2 + abs(vel_a) ** 2)
-            shaping += 0.1 * (self.legs[0].ground_contact + self.legs[1].ground_contact)
+            shaping = 0
+            # The main engine force affects the orientation and angular velocity of the rocket.
+            # If the penalty is too large, the agent is discouraged from using the main engine force.
+            # As a consequence, the rocket will be free-falling (least changes in orientation and angular velocity).
+            # If the penalty is too small, the agent is not centivised enough
+            # to stabilize the orientation and reduce the angular velocity.
+            # Encourage the rocket to quickly stabilize its orientation.
+            shaping -= 0.5 * abs(angle)**2
+            shaping -= 0.5 * abs(vel_a)**2
+
+            # Encourage the rocket to quickly reduce its speed.
+            # shaping -= 0.5 * speed
+            shaping -= 0.5 * speed**2
+
+            # Encourage the rocket to quickly navigate to the ship's center.
+            shaping -= 0.5 * distance
+            # shaping -= 0.5 * distance**2
+
+            # Reward for each leg touching the ground from a non-touching state in the previous step.
+            shaping += 0.1 * \
+                (self.legs[0].ground_contact + self.legs[1].ground_contact)
+
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
             self.prev_shaping = shaping
 
+            if self.prev_distance is not None and self.prev_distance > distance:
+                reward += 0.01
+            self.prev_distance = distance
+
+            landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.1
             if landed:
                 self.landed_ticks += 1
             else:
                 self.landed_ticks = 0
             if self.landed_ticks == FPS:
-                reward = 1.0
+                reward = 10.0
                 done = True
+                info['is_success'] = True
+                print('Successful landing!')
 
         if done:
-            reward += max(-1, 0 - 2 * (speed + distance + abs(angle) + abs(vel_a)))
-
-        reward = np.clip(reward, -1, 1)
+            reward += max(-3.0, -2.0 * (speed + distance +
+                          abs(angle) + abs(vel_a)))
+        else:
+            reward = np.clip(reward, -1, 1)
 
         # REWARD -------------------------------------------------------------------------------------------------------
 
         self.stepnumber += 1
 
-        state = (state - MEAN[: len(state)]) / VAR[: len(state)]
-        return np.array(state), reward, done, {}
+        return np.array(state).astype(np.float32), reward, done, False, info
 
     def render(self, mode="human", close=False):
         if close:
@@ -576,7 +598,8 @@ class VerticalRocket(gym.Env):
             )
             self.fire.set_color(*rgb(255, 230, 107))
             self.firescale = rendering.Transform(scale=(1, 1))
-            self.firetrans = rendering.Transform(translation=(0, -ENGINE_HEIGHT))
+            self.firetrans = rendering.Transform(
+                translation=(0, -ENGINE_HEIGHT))
             self.fire.add_attr(self.firescale)
             self.fire.add_attr(self.firetrans)
             self.fire.add_attr(self.enginetrans)
@@ -607,8 +630,11 @@ class VerticalRocket(gym.Env):
 
         for leg in zip(self.legs, [-1, 1]):
             path = [
-                self.lander.fixtures[0].body.transform * (leg[1] * ROCKET_WIDTH / 2, ROCKET_HEIGHT / 8),
-                leg[0].fixtures[0].body.transform * (leg[1] * self.compute_leg_length(LEG_LENGTH, self.level_number) * 0.8, 0),
+                self.lander.fixtures[0].body.transform *
+                (leg[1] * ROCKET_WIDTH / 2, ROCKET_HEIGHT / 8),
+                leg[0].fixtures[0].body.transform *
+                (leg[1] * self.compute_leg_length(LEG_LENGTH,
+                 self.level_number) * 0.8, 0),
             ]
             self.viewer.draw_polyline(
                 path, color=self.ship.color1, linewidth=1 if START_HEIGHT > 500 else 2
@@ -626,9 +652,13 @@ class VerticalRocket(gym.Env):
         self.rockettrans.set_translation(*self.lander.position)
         self.rockettrans.set_rotation(self.lander.angle)
         self.enginetrans.set_rotation(self.gimbal)
-        self.firescale.set_scale(newx=1, newy=self.power * np.random.uniform(1, 1.3))
+        self.firescale.set_scale(
+            newx=1, newy=self.power * np.random.uniform(1, 1.3))
 
         return self.viewer.render(return_rgb_array=mode == "rgb_array")
+
+    def close(self):
+        pass
 
 
 def rgb(r, g, b):
