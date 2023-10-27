@@ -25,7 +25,7 @@ eval_path = os.path.join("models", MODEL_NAME, "eval")
 os.makedirs(save_path, exist_ok=True)
 os.makedirs(logs_path, exist_ok=True)
 
-ENV_ID = "VerticalRocket-v1-lvl1"
+ENV_ID = "VerticalRocket-v1-lvl2"
 env = make_vec_env(ENV_ID, n_envs=4)
 
 eval_env = gym.make(ENV_ID)
@@ -108,7 +108,7 @@ eval_callback = EvalCallback(
 )
 
 # Train
-TRAIN_TIMESTEPS = 2_000_000
+TRAIN_TIMESTEPS = 3_000_000
 model.learn(
     total_timesteps=TRAIN_TIMESTEPS,
     callback=[checkpoint_callback, eval_callback])

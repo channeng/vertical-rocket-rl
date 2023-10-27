@@ -28,7 +28,7 @@ if args.method == "ppo":
 else:
     model = A2C.load(latest_model_path)
 
-ENV_ID = "VerticalRocket-v1-lvl1"
+ENV_ID = "VerticalRocket-v1-lvl2"
 env = Monitor(gym.make(ENV_ID))
 
 check_env(env)
