@@ -45,7 +45,7 @@ CONTINUOUS = True
 VEL_STATE = True        # Add velocity info to state
 FPS = 60
 SCALE_S = 0.35          # Temporal Scaling, lower is faster - adjust forces appropriately
-INITIAL_RANDOM = 0.0    # Random scaling of initial velocity, higher is more difficult
+# INITIAL_RANDOM = 0.0    # Random scaling of initial velocity, higher is more difficult
 
 START_HEIGHT = 1000.0
 START_SPEED = 80.0
@@ -110,6 +110,7 @@ class VerticalRocket(gym.Env):
         super(VerticalRocket, self).__init__()
 
         self.level_number = level_number
+        print(self.level_number)
         self.viewer = None
         self.episode_number = 0
 
@@ -258,12 +259,16 @@ class VerticalRocket(gym.Env):
         self.ship.color1 = (0.2, 0.2, 0.2)
 
         def initial_rocket_pos(level):
-            if level > 0:
-                initial_x = W / 2 + W * np.random.uniform(-0.3, 0.3)
-                initial_y = H * 0.95
+            initial_x = W / 2
+            initial_y = H * 0.95
+            if level >= 2:
+                initial_x_random = 0.3
+            elif level == 1:
+                initial_x_random = 0.1
             else:
-                initial_x = W / 2 + W * np.random.uniform(-0.03, 0.03)
-                initial_y = H * 0.95
+                initial_x_random = 0.03
+            initial_x += W * np.random.uniform(
+                -initial_x_random, initial_x_random)
             return initial_x, initial_y
 
         initial_x, initial_y = initial_rocket_pos(self.level_number)
@@ -346,15 +351,15 @@ class VerticalRocket(gym.Env):
 
             self.legs.append(leg)
 
-        def random_factor_velocity(INITIAL_RANDOM, level):
-            if level > 1:
-                return INITIAL_RANDOM + 0.2
+        def random_factor_velocity(level):
+            if level >= 2:
+                return 0.3
+            elif level == 1:
+                return 0.1
             else:
-                return INITIAL_RANDOM
+                return 0
 
-        random_velocity_factor = random_factor_velocity(
-            INITIAL_RANDOM, self.level_number
-        )
+        random_velocity_factor = random_factor_velocity(self.level_number)
 
         self.lander.linearVelocity = (
             -np.random.uniform(0, random_velocity_factor) *
