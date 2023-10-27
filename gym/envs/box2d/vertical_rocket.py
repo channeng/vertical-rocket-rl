@@ -47,8 +47,8 @@ FPS = 60
 SCALE_S = 0.35          # Temporal Scaling, lower is faster - adjust forces appropriately
 INITIAL_RANDOM = 0.0    # Random scaling of initial velocity, higher is more difficult
 
-START_HEIGHT = 400.0
-START_SPEED = 25.0
+START_HEIGHT = 1000.0
+START_SPEED = 80.0
 
 # ROCKET
 MIN_THROTTLE = 0.4
@@ -479,7 +479,7 @@ class VerticalRocket(gym.Env):
         outside = abs(pos.x - W / 2) > 2.0 * W or pos.y > 2.0 * H
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
-            self.legs[0].joint.angle < -0.1 or self.legs[1].joint.angle > 0.1
+            self.legs[0].joint.angle < -0.05 or self.legs[1].joint.angle > 0.05
         ) and ground_contact
 
         if outside:
@@ -526,7 +526,7 @@ class VerticalRocket(gym.Env):
                 reward += 0.01
             self.prev_distance = distance
 
-            landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.1
+            landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.05
             if landed:
                 self.landed_ticks += 1
             else:
