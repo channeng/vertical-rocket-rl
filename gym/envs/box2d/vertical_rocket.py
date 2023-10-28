@@ -47,9 +47,6 @@ FPS = 60
 SCALE_S = 0.35          # Temporal Scaling, lower is faster - adjust forces appropriately
 # INITIAL_RANDOM = 0.0    # Random scaling of initial velocity, higher is more difficult
 
-START_HEIGHT = 1000.0
-START_SPEED = 80.0
-
 # ROCKET
 MIN_THROTTLE = 0.4
 GIMBAL_THRESHOLD = 0.4
@@ -75,8 +72,6 @@ SHIP_WIDTH = SHIP_HEIGHT * 80
 # VIEWPORT
 VIEWPORT_H = 720
 VIEWPORT_W = 500
-H = 1.1 * START_HEIGHT * SCALE_S
-W = float(VIEWPORT_W) / VIEWPORT_H * H
 
 
 class ContactDetector(contactListener):
@@ -108,9 +103,21 @@ class VerticalRocket(gym.Env):
 
     def __init__(self, level_number=0, continuous=True, speed_threshold=1):
         super(VerticalRocket, self).__init__()
-
         self.level_number = level_number
         print(self.level_number)
+        if self.level_number >= 2:
+            self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.1, 0.1))
+            self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.1, 0.1))
+        elif self.level_number == 1:
+            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.2, 0.2))
+            self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.2))
+        elif self.level_number == 0:
+            self.START_HEIGHT = 400.0 * (1 + np.random.uniform(-0.25, 0.25))
+            self.START_SPEED = 20.0 * (1 + np.random.uniform(-0.25, 0.25))
+
+        self.H = 1.1 * self.START_HEIGHT * SCALE_S
+        self.W = float(VIEWPORT_W) / VIEWPORT_H * self.H
+
         self.viewer = None
         self.episode_number = 0
 
@@ -127,6 +134,7 @@ class VerticalRocket(gym.Env):
         self.good_landings = 0
         self.total_landed_ticks = 0
         self.landed_ticks = 0
+        self.legs_had_contacted_ground = [False, False]
         self.done = False
         self.prev_distance = None
         self.speed_threshold = speed_threshold
@@ -186,9 +194,9 @@ class VerticalRocket(gym.Env):
         self.landed_ticks = 0
         self.stepnumber = 0
 
-        self.terrainheigth = H / 20
+        self.terrainheigth = self.H / 20
         self.shipheight = self.terrainheigth + SHIP_HEIGHT
-        ship_pos = W / 2
+        ship_pos = self.W / 2
         self.helipad_x1 = ship_pos - SHIP_WIDTH / 2
         self.helipad_x2 = self.helipad_x1 + SHIP_WIDTH
         self.helipad_y = self.terrainheigth + SHIP_HEIGHT
@@ -197,10 +205,10 @@ class VerticalRocket(gym.Env):
             fixtures=fixtureDef(
                 shape=polygonShape(
                     vertices=(
-                        (-W, 0),
-                        (2.0 * W, 0),
-                        (2.0 * W, self.terrainheigth),
-                        (-W, self.terrainheigth),
+                        (-self.W, 0),
+                        (2.0 * self.W, 0),
+                        (2.0 * self.W, self.terrainheigth),
+                        (-self.W, self.terrainheigth),
                     )
                 ),
                 friction=0.1,
@@ -259,15 +267,15 @@ class VerticalRocket(gym.Env):
         self.ship.color1 = (0.2, 0.2, 0.2)
 
         def initial_rocket_pos(level):
-            initial_x = W / 2
-            initial_y = H * 0.95
+            initial_x = self.W / 2
+            initial_y = self.H * 0.95
             if level >= 2:
                 initial_x_random = 0.3
             elif level == 1:
                 initial_x_random = 0.1
             else:
                 initial_x_random = 0.03
-            initial_x += W * np.random.uniform(
+            initial_x += self.W * np.random.uniform(
                 -initial_x_random, initial_x_random)
             return initial_x, initial_y
 
@@ -363,8 +371,8 @@ class VerticalRocket(gym.Env):
 
         self.lander.linearVelocity = (
             -np.random.uniform(0, random_velocity_factor) *
-            START_SPEED * (initial_x - W / 2) / W,
-            -START_SPEED,
+            self.START_SPEED * (initial_x - self.W / 2) / self.W,
+            -self.START_SPEED,
         )
 
         self.lander.angularVelocity = (1 + random_velocity_factor) * np.random.uniform(
@@ -441,10 +449,10 @@ class VerticalRocket(gym.Env):
         self.world.Step(1.0 / FPS, 60, 60)
 
         pos = self.lander.position
-        vel_l = np.array(self.lander.linearVelocity) / START_SPEED
+        vel_l = np.array(self.lander.linearVelocity) / self.START_SPEED
         vel_a = self.lander.angularVelocity
-        x_distance = (pos.x - W / 2) / W
-        y_distance = (pos.y - self.shipheight) / (H - self.shipheight)
+        x_distance = (pos.x - self.W / 2) / self.W
+        y_distance = (pos.y - self.shipheight) / (self.H - self.shipheight)
 
         angle = (self.lander.angle / np.pi) % 2
         # Normalize to [-1, 1]
@@ -473,7 +481,7 @@ class VerticalRocket(gym.Env):
 
         # fuel_cost = 0.1 * (0.0 * self.power + abs(self.force_dir)) / FPS
         # Too large => free-falling agent to save fuel (stop using all engine forces to save fuel).
-        fuel_cost = 0.15 / FPS
+        fuel_cost = 0.2 / FPS
         reward -= fuel_cost
 
         distance = np.linalg.norm((3.0 * x_distance, y_distance))
@@ -481,7 +489,7 @@ class VerticalRocket(gym.Env):
 
         info = {'is_success': False}
 
-        outside = abs(pos.x - W / 2) > 2.0 * W or pos.y > 2.0 * H
+        outside = abs(pos.x - self.W / 2) > 2.0 * self.W or pos.y > 2.0 * self.H
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
             self.legs[0].joint.angle < -0.05 or self.legs[1].joint.angle > 0.05
@@ -491,7 +499,7 @@ class VerticalRocket(gym.Env):
             done = True
             info['is_success'] = False
             print('Outside!')
-        elif self.game_over or (y_distance < 0.0 and abs(pos.x - W / 2) > W / 2):
+        elif self.game_over or (y_distance < 0.0 and abs(pos.x - self.W / 2) > self.W / 2):
             done = True
             info['is_success'] = False
             # print('Crashed!')
@@ -520,8 +528,10 @@ class VerticalRocket(gym.Env):
             # shaping -= 0.5 * distance**2
 
             # Reward for each leg touching the ground from a non-touching state in the previous step.
-            shaping += 0.1 * \
-                (self.legs[0].ground_contact + self.legs[1].ground_contact)
+            for leg in [0, 1]:
+                if not self.legs_had_contacted_ground[leg] and self.legs[leg].ground_contact:
+                    shaping += 0.1
+                    self.legs_had_contacted_ground[leg] = True
 
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
@@ -530,13 +540,13 @@ class VerticalRocket(gym.Env):
             if self.prev_distance is not None and self.prev_distance > distance:
                 reward += 0.01
             self.prev_distance = distance
-
             landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.05
+            # print(landed, self.legs[0].ground_contact, self.legs[1].ground_contact, speed < 0.05, reward)
             if landed:
                 self.landed_ticks += 1
             else:
                 self.landed_ticks = 0
-            if self.landed_ticks == FPS:
+            if self.landed_ticks >= FPS / 10:
                 reward = 10.0
                 done = True
                 info['is_success'] = True
@@ -567,9 +577,9 @@ class VerticalRocket(gym.Env):
 
             self.viewer = rendering.Viewer(VIEWPORT_W, VIEWPORT_H)
 
-            self.viewer.set_bounds(0, W, 0, H)
+            self.viewer.set_bounds(0, self.W, 0, self.H)
 
-            sky = rendering.FilledPolygon(((0, 0), (0, H), (W, H), (W, 0)))
+            sky = rendering.FilledPolygon(((0, 0), (0, self.H), (self.W, self.H), (self.W, 0)))
             self.sky_color = rgb(126, 150, 233)
             sky.set_color(*self.sky_color)
             self.sky_color_half_transparent = (
@@ -642,7 +652,7 @@ class VerticalRocket(gym.Env):
                  self.level_number) * 0.8, 0),
             ]
             self.viewer.draw_polyline(
-                path, color=self.ship.color1, linewidth=1 if START_HEIGHT > 500 else 2
+                path, color=self.ship.color1, linewidth=1 if self.START_HEIGHT > 500 else 2
             )
 
         self.viewer.draw_polyline(

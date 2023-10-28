@@ -1,10 +1,11 @@
 from gymnasium.envs.registration import register
 
 register(
-    id='VerticalRocket-v1',
+    id='VerticalRocket-v1-lvl0',
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
-    reward_threshold=10
+    reward_threshold=10,
+    kwargs={'level_number': 0},
 )
 
 register(

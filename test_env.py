@@ -1,6 +1,6 @@
 import gymnasium as gym
 
-env = gym.make('VerticalRocket-v1')
+env = gym.make('VerticalRocket-v1-lvl2')
 env.reset()
 
 PRINT_DEBUG_MSG = True
@@ -14,9 +14,10 @@ while True:
         print("Action Taken  ", action)
         print("Observation   ", observation)
         print("Reward Gained ", reward)
-        print("Info          ", info,end='\n\n')
+        print("Info          ", info, end='\n\n')
 
     if done:
         print("Simulation done.")
         break
+
 env.close()
