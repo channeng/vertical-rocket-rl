@@ -104,7 +104,7 @@ class VerticalRocket(gym.Env):
     def __init__(self, level_number=0, continuous=True, speed_threshold=1):
         super(VerticalRocket, self).__init__()
         self.level_number = level_number
-        print(self.level_number)
+
         if self.level_number >= 2:
             self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.1, 0.1))
             self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.1, 0.1))
@@ -134,7 +134,6 @@ class VerticalRocket(gym.Env):
         self.good_landings = 0
         self.total_landed_ticks = 0
         self.landed_ticks = 0
-        self.legs_had_contacted_ground = [False, False]
         self.done = False
         self.prev_distance = None
         self.speed_threshold = speed_threshold
@@ -489,7 +488,8 @@ class VerticalRocket(gym.Env):
 
         info = {'is_success': False}
 
-        outside = abs(pos.x - self.W / 2) > 2.0 * self.W or pos.y > 2.0 * self.H
+        outside = abs(pos.x - self.W / 2) > 2.0 * \
+            self.W or pos.y > 2.0 * self.H
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
             self.legs[0].joint.angle < -0.05 or self.legs[1].joint.angle > 0.05
@@ -528,10 +528,16 @@ class VerticalRocket(gym.Env):
             # shaping -= 0.5 * distance**2
 
             # Reward for each leg touching the ground from a non-touching state in the previous step.
-            for leg in [0, 1]:
-                if not self.legs_had_contacted_ground[leg] and self.legs[leg].ground_contact:
-                    shaping += 0.1
-                    self.legs_had_contacted_ground[leg] = True
+            shaping += 0.1 * \
+                (self.legs[0].ground_contact + self.legs[1].ground_contact)
+
+            landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.05
+
+            if landed:
+                self.landed_ticks += 1
+            else:
+                self.landed_ticks = 0
+            shaping += self.landed_ticks / FPS
 
             if self.prev_shaping is not None:
                 reward += shaping - self.prev_shaping
@@ -540,13 +546,8 @@ class VerticalRocket(gym.Env):
             if self.prev_distance is not None and self.prev_distance > distance:
                 reward += 0.01
             self.prev_distance = distance
-            landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.05
-            # print(landed, self.legs[0].ground_contact, self.legs[1].ground_contact, speed < 0.05, reward)
-            if landed:
-                self.landed_ticks += 1
-            else:
-                self.landed_ticks = 0
-            if self.landed_ticks >= FPS / 10:
+
+            if self.landed_ticks >= FPS:
                 reward = 10.0
                 done = True
                 info['is_success'] = True
@@ -579,7 +580,8 @@ class VerticalRocket(gym.Env):
 
             self.viewer.set_bounds(0, self.W, 0, self.H)
 
-            sky = rendering.FilledPolygon(((0, 0), (0, self.H), (self.W, self.H), (self.W, 0)))
+            sky = rendering.FilledPolygon(
+                ((0, 0), (0, self.H), (self.W, self.H), (self.W, 0)))
             self.sky_color = rgb(126, 150, 233)
             sky.set_color(*self.sky_color)
             self.sky_color_half_transparent = (
