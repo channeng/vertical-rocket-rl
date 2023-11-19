@@ -482,8 +482,6 @@ class VerticalRocket(gym.Env):
         fuel_cost = 0.2 / FPS
         reward -= fuel_cost
 
-        speed = np.linalg.norm((vel_l[0], vel_l[1]))
-
         info = {'is_success': False}
 
         outside = abs(pos.x - self.W / 2) > self.W / 2.0 or pos.y > self.H
@@ -500,7 +498,6 @@ class VerticalRocket(gym.Env):
             done = True
             info['is_success'] = False
             # print('Crashed!')
-
         elif broken_leg:
             done = True
             info['is_success'] = False
@@ -518,7 +515,8 @@ class VerticalRocket(gym.Env):
 
             # Encourage the rocket to quickly reduce its speed.
             # shaping -= 0.5 * speed
-            shaping -= 0.5 * speed**2
+            shaping -= 0.5 * abs(vel_l[0])
+            shaping -= 0.5 * abs(vel_l[1])
 
             # Encourage the rocket to quickly navigate to the ship's center.
             shaping -= 3.0 * abs(x_distance)
@@ -528,6 +526,7 @@ class VerticalRocket(gym.Env):
             shaping += 0.1 * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
+            speed = np.linalg.norm((vel_l[0], vel_l[1]))
             landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.05
 
             if landed:
@@ -547,7 +546,7 @@ class VerticalRocket(gym.Env):
                 print('Successful landing!')
 
         if done:
-            reward += max(-3.0, -2.0 * (speed + abs(x_distance) +
+            reward += max(-3.0, -2.0 * (abs(vel_l[0]) + abs(vel_l[1]) + abs(x_distance) +
                           y_distance + abs(angle) + abs(vel_a)))
         else:
             reward = np.clip(reward, -1, 1)
