@@ -135,7 +135,6 @@ class VerticalRocket(gym.Env):
         self.total_landed_ticks = 0
         self.landed_ticks = 0
         self.done = False
-        self.prev_distance = None
         self.speed_threshold = speed_threshold
         almost_inf = 9999
         high = np.array(
@@ -185,7 +184,6 @@ class VerticalRocket(gym.Env):
         self.world.contactListener = self.world.contactListener_keepref
         self.game_over = False
         self.prev_shaping = None
-        self.prev_distance = None
         self.episode_number += 1
         self.throttle = 0
         self.gimbal = 0.0
@@ -450,8 +448,9 @@ class VerticalRocket(gym.Env):
         pos = self.lander.position
         vel_l = np.array(self.lander.linearVelocity) / self.START_SPEED
         vel_a = self.lander.angularVelocity
-        x_distance = (pos.x - self.W / 2) / self.W
-        y_distance = (pos.y - self.shipheight) / (self.H - self.shipheight)
+        x_distance = 2.0 * (pos.x - self.W / 2) / self.W
+        y_distance = 2.0 * ((pos.y - self.shipheight) /
+                            (self.H - self.shipheight) - 0.5)
 
         angle = (self.lander.angle / np.pi) % 2
         # Normalize to [-1, 1]
@@ -459,8 +458,8 @@ class VerticalRocket(gym.Env):
             angle -= 2
 
         state = [
-            2 * x_distance,
-            2 * (y_distance - 0.5),
+            x_distance,
+            y_distance,
             angle,
             1.0 if self.legs[0].ground_contact else 0.0,
             1.0 if self.legs[1].ground_contact else 0.0,
@@ -483,13 +482,11 @@ class VerticalRocket(gym.Env):
         fuel_cost = 0.2 / FPS
         reward -= fuel_cost
 
-        distance = np.linalg.norm((3.0 * x_distance, y_distance))
         speed = np.linalg.norm((vel_l[0], vel_l[1]))
 
         info = {'is_success': False}
 
-        outside = abs(pos.x - self.W / 2) > 2.0 * \
-            self.W or pos.y > 2.0 * self.H
+        outside = abs(pos.x - self.W / 2) > self.W / 2.0 or pos.y > self.H
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
             self.legs[0].joint.angle < -0.05 or self.legs[1].joint.angle > 0.05
@@ -499,7 +496,7 @@ class VerticalRocket(gym.Env):
             done = True
             info['is_success'] = False
             print('Outside!')
-        elif self.game_over or (y_distance < 0.0 and abs(pos.x - self.W / 2) > self.W / 2):
+        elif self.game_over:
             done = True
             info['is_success'] = False
             # print('Crashed!')
@@ -516,16 +513,16 @@ class VerticalRocket(gym.Env):
             # If the penalty is too small, the agent is not centivised enough
             # to stabilize the orientation and reduce the angular velocity.
             # Encourage the rocket to quickly stabilize its orientation.
-            shaping -= 0.5 * abs(angle)**2
-            shaping -= 0.5 * abs(vel_a)**2
+            shaping -= 0.5 * abs(angle)
+            shaping -= 0.5 * abs(vel_a)
 
             # Encourage the rocket to quickly reduce its speed.
             # shaping -= 0.5 * speed
             shaping -= 0.5 * speed**2
 
             # Encourage the rocket to quickly navigate to the ship's center.
-            shaping -= 0.5 * distance
-            # shaping -= 0.5 * distance**2
+            shaping -= 3.0 * abs(x_distance)
+            shaping -= 2.5 * (y_distance + 1.0) / 2.0
 
             # Reward for each leg touching the ground from a non-touching state in the previous step.
             shaping += 0.1 * \
@@ -543,10 +540,6 @@ class VerticalRocket(gym.Env):
                 reward += shaping - self.prev_shaping
             self.prev_shaping = shaping
 
-            if self.prev_distance is not None and self.prev_distance > distance:
-                reward += 0.01
-            self.prev_distance = distance
-
             if self.landed_ticks >= FPS:
                 reward = 10.0
                 done = True
@@ -554,8 +547,8 @@ class VerticalRocket(gym.Env):
                 print('Successful landing!')
 
         if done:
-            reward += max(-3.0, -2.0 * (speed + distance +
-                          abs(angle) + abs(vel_a)))
+            reward += max(-3.0, -2.0 * (speed + abs(x_distance) +
+                          y_distance + abs(angle) + abs(vel_a)))
         else:
             reward = np.clip(reward, -1, 1)
 
