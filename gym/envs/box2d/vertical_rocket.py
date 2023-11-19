@@ -546,9 +546,9 @@ class VerticalRocket(gym.Env):
                 info['is_success'] = True
                 print('Successful landing!')
 
-        if done:
-            reward += max(-3.0, -2.0 * (abs(vel_l[0]) + abs(vel_l[1]) + abs(x_distance) +
-                          y_distance + abs(angle) + abs(vel_a)))
+        if done and self.landed_ticks < FPS:
+            reward += max(-3.0, -1.0 * (0.5 * abs(vel_l[0]) + 0.5 * abs(vel_l[1]) + 3.0 * abs(x_distance) +
+                          2.5 * (y_distance + 1.0) / 2.0 + 0.5 * abs(angle) + 0.5 * abs(vel_a)))
         else:
             reward = np.clip(reward, -1, 1)
 
