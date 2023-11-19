@@ -487,7 +487,8 @@ class VerticalRocket(gym.Env):
         outside = abs(pos.x - self.W / 2) > self.W / 2.0 or pos.y > self.H
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
-            self.legs[0].joint.angle < -0.05 or self.legs[1].joint.angle > 0.05
+            self.legs[0].joint.angle < -
+            0.025 or self.legs[1].joint.angle > 0.025
         ) and ground_contact
 
         if outside:
