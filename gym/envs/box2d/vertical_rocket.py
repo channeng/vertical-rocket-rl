@@ -180,6 +180,20 @@ class VerticalRocket(gym.Env):
 
     def reset(self, seed=None, options=None):
         self._destroy()
+
+        if self.level_number >= 2:
+            self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.1, 0.1))
+            self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.1, 0.1))
+        elif self.level_number == 1:
+            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.2, 0.2))
+            self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.2))
+        elif self.level_number == 0:
+            self.START_HEIGHT = 400.0 * (1 + np.random.uniform(-0.25, 0.25))
+            self.START_SPEED = 20.0 * (1 + np.random.uniform(-0.25, 0.25))
+
+        self.H = 1.1 * self.START_HEIGHT * SCALE_S
+        self.W = float(VIEWPORT_W) / VIEWPORT_H * self.H
+
         self.world.contactListener_keepref = ContactDetector(self)
         self.world.contactListener = self.world.contactListener_keepref
         self.game_over = False
@@ -474,15 +488,13 @@ class VerticalRocket(gym.Env):
 
         # REWARD -------------------------------------------------------------------------------------------------------
 
+        info = {'is_success': False}
         done = False
         reward = 0
 
         # fuel_cost = 0.1 * (0.0 * self.power + abs(self.force_dir)) / FPS
-        # Too large => free-falling agent to save fuel (stop using all engine forces to save fuel).
         fuel_cost = 0.2 / FPS
         reward -= fuel_cost
-
-        info = {'is_success': False}
 
         outside = abs(pos.x - self.W / 2) > self.W / 2.0 or pos.y > self.H
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
@@ -505,30 +517,22 @@ class VerticalRocket(gym.Env):
             # print('Broken leg!')
         else:
             shaping = 0
-            # The main engine force affects the orientation and angular velocity of the rocket.
-            # If the penalty is too large, the agent is discouraged from using the main engine force.
-            # As a consequence, the rocket will be free-falling (least changes in orientation and angular velocity).
-            # If the penalty is too small, the agent is not centivised enough
-            # to stabilize the orientation and reduce the angular velocity.
-            # Encourage the rocket to quickly stabilize its orientation.
-            shaping -= 0.5 * abs(angle)
+
+            shaping -= 5.0 * abs(angle)
             shaping -= 0.5 * abs(vel_a)
 
-            # Encourage the rocket to quickly reduce its speed.
-            # shaping -= 0.5 * speed
             shaping -= 0.5 * abs(vel_l[0])
-            shaping -= 0.5 * abs(vel_l[1])
+            shaping -= 3.0 * \
+                (self.lander.linearVelocity[1] / 100.0)**2
 
-            # Encourage the rocket to quickly navigate to the ship's center.
-            shaping -= 3.0 * abs(x_distance)
-            shaping -= 2.5 * (y_distance + 1.0) / 2.0
+            shaping -= 2.5 * abs(x_distance)
+            shaping -= 3.0 * ((pos.y - self.shipheight) /
+                              (1000.0 - self.shipheight))**2.0
 
-            # Reward for each leg touching the ground from a non-touching state in the previous step.
             shaping += 0.1 * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
-            speed = np.linalg.norm((vel_l[0], vel_l[1]))
-            landed = self.legs[0].ground_contact and self.legs[1].ground_contact and speed < 0.05
+            landed = self.legs[0].ground_contact and self.legs[1].ground_contact
 
             if landed:
                 self.landed_ticks += 1
@@ -547,8 +551,15 @@ class VerticalRocket(gym.Env):
                 print('Successful landing!')
 
         if done and self.landed_ticks < FPS:
-            reward = max(-3.0, -0.5 * (0.5 * abs(vel_l[0]) + 0.5 * abs(vel_l[1]) + 3.0 * abs(x_distance) +
-                                       2.5 * (y_distance + 1.0) / 2.0 + 0.5 * abs(angle) + 0.5 * abs(vel_a)))
+            reward = max(-3.0, -1.0 * (0.5 * abs(vel_l[0])
+                                       + 3.0 *
+                                       (self.lander.linearVelocity[1] /
+                                        self.START_SPEED)**2
+                                       + 2.5 * abs(x_distance)
+                                       + 3.0 * ((pos.y - self.shipheight) /
+                                                (self.H - self.shipheight))**2.0
+                                       + 5.0 * abs(angle)
+                                       + 0.5 * abs(vel_a)))
         else:
             reward = np.clip(reward, -1, 1)
 
