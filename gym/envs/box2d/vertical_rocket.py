@@ -105,19 +105,6 @@ class VerticalRocket(gym.Env):
         super(VerticalRocket, self).__init__()
         self.level_number = level_number
 
-        if self.level_number >= 2:
-            self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.1, 0.1))
-            self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.1, 0.1))
-        elif self.level_number == 1:
-            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.2, 0.2))
-            self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.2))
-        elif self.level_number == 0:
-            self.START_HEIGHT = 400.0 * (1 + np.random.uniform(-0.25, 0.25))
-            self.START_SPEED = 20.0 * (1 + np.random.uniform(-0.25, 0.25))
-
-        self.H = 1.1 * self.START_HEIGHT * SCALE_S
-        self.W = float(VIEWPORT_W) / VIEWPORT_H * self.H
-
         self.viewer = None
         self.episode_number = 0
 
@@ -181,15 +168,24 @@ class VerticalRocket(gym.Env):
     def reset(self, seed=None, options=None):
         self._destroy()
 
+        self.wind_idx = 0
+        self.wind_torque_idx = 0
+
         if self.level_number >= 2:
             self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.1, 0.1))
-            self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.1, 0.1))
+            self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
+            self.wind_power = 15.0
+            self.wind_turbulence_power = 1.5
         elif self.level_number == 1:
-            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.2, 0.2))
-            self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.2))
+            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.15, 0.2))
+            self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.15))
+            self.wind_power = 10.0
+            self.wind_turbulence_power = 1.0
         elif self.level_number == 0:
             self.START_HEIGHT = 400.0 * (1 + np.random.uniform(-0.25, 0.25))
             self.START_SPEED = 20.0 * (1 + np.random.uniform(-0.25, 0.25))
+            self.wind_power = 5.0
+            self.wind_turbulence_power = 0.5
 
         self.H = 1.1 * self.START_HEIGHT * SCALE_S
         self.W = float(VIEWPORT_W) / VIEWPORT_H * self.H
@@ -457,6 +453,31 @@ class VerticalRocket(gym.Env):
         self.lander.ApplyLinearImpulse(
             impulse=force_c, point=force_pos_c, wake=False)
 
+        # Wind
+        if not (self.legs[0].ground_contact or self.legs[1].ground_contact):
+            wind_mag = (
+                np.tanh(
+                    np.sin(0.02 * self.wind_idx)
+                    + (np.sin(np.pi * 0.01 * self.wind_idx))
+                )
+                * self.wind_power
+            )
+            self.wind_idx += 1
+            self.lander.ApplyForceToCenter(
+                (wind_mag, 0.0),
+                True,
+            )
+
+            torque_mag = np.tanh(
+                np.sin(0.02 * self.wind_torque_idx)
+                + (np.sin(np.pi * 0.01 * self.wind_torque_idx))
+            ) * (self.wind_turbulence_power)
+            self.wind_torque_idx += 1
+            self.lander.ApplyTorque(
+                (torque_mag),
+                True,
+            )
+
         self.world.Step(1.0 / FPS, 60, 60)
 
         pos = self.lander.position
@@ -492,7 +513,7 @@ class VerticalRocket(gym.Env):
         done = False
         reward = 0
 
-        # fuel_cost = 0.1 * (0.0 * self.power + abs(self.force_dir)) / FPS
+        # fuel_cost = 0.1 * (0.5 * self.power + abs(self.force_dir)) / FPS
         fuel_cost = 0.2 / FPS
         reward -= fuel_cost
 
@@ -500,21 +521,43 @@ class VerticalRocket(gym.Env):
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
             self.legs[0].joint.angle < -
-            0.025 or self.legs[1].joint.angle > 0.025
+            0.1 or self.legs[1].joint.angle > 0.1
         ) and ground_contact
 
         if outside:
             done = True
             info['is_success'] = False
+
+            reward = max(-3.0, -3.0 * (0.5 * abs(vel_l[0])
+                                       + 5.0 *
+                                       (self.lander.linearVelocity[1] /
+                                        self.START_SPEED)**2
+                                       + 5.0 * abs(x_distance)
+                                       + 5.0 * ((pos.y - self.shipheight) /
+                                                (self.H - self.shipheight))**2.0
+                                       #    + 5.0 * abs(angle)
+                                       #    + 0.5 * abs(vel_a)
+                                       ))
+
             print('Outside!')
         elif self.game_over:
             done = True
             info['is_success'] = False
-            # print('Crashed!')
+
+            reward = max(-3.0, -1.0 * (0.5 * abs(vel_l[0])
+                                       + 2.5 * abs(x_distance)
+                                       + 5.0 * abs(angle)
+                                       + 0.5 * abs(vel_a)))
+
+            print('Crashed!')
         elif broken_leg:
             done = True
             info['is_success'] = False
-            # print('Broken leg!')
+
+            reward = max(-3.0, -0.5 * (5.0 * (self.lander.linearVelocity[1] / self.START_SPEED)**2
+                                       + 5.0 * abs(angle)))
+
+            print('Broken leg!')
         else:
             shaping = 0
 
@@ -526,10 +569,10 @@ class VerticalRocket(gym.Env):
                 (self.lander.linearVelocity[1] / 100.0)**2
 
             shaping -= 2.5 * abs(x_distance)
-            shaping -= 3.0 * ((pos.y - self.shipheight) /
+            shaping -= 5.0 * ((pos.y - self.shipheight) /
                               (1000.0 - self.shipheight))**2.0
 
-            shaping += 0.1 * \
+            shaping += 0.5 * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
             landed = self.legs[0].ground_contact and self.legs[1].ground_contact
@@ -550,17 +593,7 @@ class VerticalRocket(gym.Env):
                 info['is_success'] = True
                 print('Successful landing!')
 
-        if done and self.landed_ticks < FPS:
-            reward = max(-3.0, -1.0 * (0.5 * abs(vel_l[0])
-                                       + 3.0 *
-                                       (self.lander.linearVelocity[1] /
-                                        self.START_SPEED)**2
-                                       + 2.5 * abs(x_distance)
-                                       + 3.0 * ((pos.y - self.shipheight) /
-                                                (self.H - self.shipheight))**2.0
-                                       + 5.0 * abs(angle)
-                                       + 0.5 * abs(vel_a)))
-        else:
+        if not done:
             reward = np.clip(reward, -1, 1)
 
         # REWARD -------------------------------------------------------------------------------------------------------
