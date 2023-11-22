@@ -123,6 +123,10 @@ class VerticalRocket(gym.Env):
         self.landed_ticks = 0
         self.done = False
         self.speed_threshold = speed_threshold
+
+        self.wind_idx = 0
+        self.wind_torque_idx = 0
+
         almost_inf = 9999
         high = np.array(
             [1, 1, 1, 1, 1, 1, 1, almost_inf, almost_inf, almost_inf], dtype=np.float32
@@ -168,16 +172,13 @@ class VerticalRocket(gym.Env):
     def reset(self, seed=None, options=None):
         self._destroy()
 
-        self.wind_idx = 0
-        self.wind_torque_idx = 0
-
         if self.level_number >= 2:
-            self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.1, 0.1))
+            self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.1, 0.1))
             self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
             self.wind_power = 15.0
             self.wind_turbulence_power = 1.5
         elif self.level_number == 1:
-            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.15, 0.2))
+            self.START_HEIGHT = 800.0 * (1 + np.random.uniform(-0.15, 0.2))
             self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.15))
             self.wind_power = 10.0
             self.wind_turbulence_power = 1.0
@@ -403,7 +404,7 @@ class VerticalRocket(gym.Env):
         self.force_dir = 0
 
         if self.continuous:
-            np.clip(action, -1, 1)
+            action = np.clip(action, -1, 1)
             self.gimbal += action[0] * 0.6 / FPS
             self.throttle += action[1] * 0.6 / FPS
             if action[2] > 0.5:
@@ -457,8 +458,8 @@ class VerticalRocket(gym.Env):
         if not (self.legs[0].ground_contact or self.legs[1].ground_contact):
             wind_mag = (
                 np.tanh(
-                    np.sin(0.02 * self.wind_idx)
-                    + (np.sin(np.pi * 0.01 * self.wind_idx))
+                    np.sin(0.02 * self.wind_idx) +
+                    np.sin(np.pi * 0.01 * self.wind_idx)
                 )
                 * self.wind_power
             )
@@ -469,9 +470,9 @@ class VerticalRocket(gym.Env):
             )
 
             torque_mag = np.tanh(
-                np.sin(0.02 * self.wind_torque_idx)
-                + (np.sin(np.pi * 0.01 * self.wind_torque_idx))
-            ) * (self.wind_turbulence_power)
+                np.sin(0.02 * self.wind_torque_idx) +
+                np.sin(np.pi * 0.01 * self.wind_torque_idx)
+            ) * self.wind_turbulence_power
             self.wind_torque_idx += 1
             self.lander.ApplyTorque(
                 (torque_mag),
@@ -521,7 +522,7 @@ class VerticalRocket(gym.Env):
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
             self.legs[0].joint.angle < -
-            0.1 or self.legs[1].joint.angle > 0.1
+            0.075 or self.legs[1].joint.angle > 0.075
         ) and ground_contact
 
         if outside:
@@ -546,7 +547,7 @@ class VerticalRocket(gym.Env):
 
             reward = max(-3.0, -1.0 * (0.5 * abs(vel_l[0])
                                        + 2.5 * abs(x_distance)
-                                       + 5.0 * abs(angle)
+                                       + 0.5 * abs(angle)
                                        + 0.5 * abs(vel_a)))
 
             print('Crashed!')
@@ -554,7 +555,7 @@ class VerticalRocket(gym.Env):
             done = True
             info['is_success'] = False
 
-            reward = max(-3.0, -0.5 * (5.0 * (self.lander.linearVelocity[1] / self.START_SPEED)**2
+            reward = max(-1.0, -0.5 * (5.0 * (self.lander.linearVelocity[1] / self.START_SPEED)**2
                                        + 5.0 * abs(angle)))
 
             print('Broken leg!')
