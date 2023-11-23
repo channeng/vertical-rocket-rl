@@ -216,19 +216,19 @@ class VerticalRocket(gym.Env):
             self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.2, 0.15))
             self.wind_power = 12.5
             self.wind_turbulence_power = 1.25
-            self.leg_sesitivity = 0.1
+            self.leg_sesitivity = 0.075
         elif self.level_number == 5:
             self.START_HEIGHT = 1200.0 * (1 + np.random.uniform(-0.15, 0.2))
             self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.2, 0.15))
             self.wind_power = 12.5
             self.wind_turbulence_power = 1.5
-            self.leg_sesitivity = 0.1
+            self.leg_sesitivity = 0.05
         elif self.level_number == 6:
             self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.2, 0.2))
             self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
             self.wind_power = 12.5
             self.wind_turbulence_power = 1.5
-            self.leg_sesitivity = 0.1
+            self.leg_sesitivity = 0.01
 
         self.H = 1.1 * self.START_HEIGHT * SCALE_S
         self.W = float(VIEWPORT_W) / VIEWPORT_H * self.H
@@ -619,7 +619,6 @@ class VerticalRocket(gym.Env):
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
             landed = self.legs[0].ground_contact and self.legs[1].ground_contact
-
             if landed:
                 self.landed_ticks += 1
             else:
