@@ -50,8 +50,8 @@ SCALE_S = 0.35          # Temporal Scaling, lower is faster - adjust forces appr
 # ROCKET
 MIN_THROTTLE = 0.4
 GIMBAL_THRESHOLD = 0.4
-MAIN_ENGINE_POWER = 1600 * SCALE_S * 1.0
-SIDE_ENGINE_POWER = 100 / FPS * SCALE_S * 2.0
+MAIN_ENGINE_POWER = 2500 * SCALE_S * 1.0
+SIDE_ENGINE_POWER = 200 / FPS * SCALE_S * 2.0
 
 ROCKET_WIDTH = 3.66 * SCALE_S
 ROCKET_HEIGHT = ROCKET_WIDTH / 3.7 * 47.9
@@ -164,29 +164,71 @@ class VerticalRocket(gym.Env):
 
     @staticmethod
     def compute_leg_length(LEG_LENGTH, level):
-        if level > 2:
-            return LEG_LENGTH * 0.1
-        else:
-            return LEG_LENGTH
+        return LEG_LENGTH
 
     def reset(self, seed=None, options=None):
         self._destroy()
 
-        if self.level_number >= 2:
-            self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.1, 0.1))
-            self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
-            self.wind_power = 15.0
-            self.wind_turbulence_power = 1.5
-        elif self.level_number == 1:
-            self.START_HEIGHT = 800.0 * (1 + np.random.uniform(-0.15, 0.2))
-            self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.15))
-            self.wind_power = 10.0
-            self.wind_turbulence_power = 1.0
-        elif self.level_number == 0:
+        # print(f"******** LEVEL {self.level_number} ********")
+
+        # if self.level_number >= 2:
+        #     self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.1, 0.1))
+        #     self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
+        #     self.wind_power = 15.0
+        #     self.wind_turbulence_power = 1.5
+        # elif self.level_number == 1:
+        #     self.START_HEIGHT = 800.0 * (1 + np.random.uniform(-0.15, 0.2))
+        #     self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.15))
+        #     self.wind_power = 10.0
+        #     self.wind_turbulence_power = 1.0
+        # elif self.level_number == 0:
+        #     self.START_HEIGHT = 400.0 * (1 + np.random.uniform(-0.25, 0.25))
+        #     self.START_SPEED = 20.0 * (1 + np.random.uniform(-0.25, 0.25))
+        #     self.wind_power = 5.0
+        #     self.wind_turbulence_power = 0.5
+
+        if self.level_number == 0:
             self.START_HEIGHT = 400.0 * (1 + np.random.uniform(-0.25, 0.25))
             self.START_SPEED = 20.0 * (1 + np.random.uniform(-0.25, 0.25))
+            self.wind_power = 2.5
+            self.wind_turbulence_power = 0.25
+            self.leg_sesitivity = 0.01
+        elif self.level_number == 1:
+            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.15, 0.2))
+            self.START_SPEED = 50.0 * (1 + np.random.uniform(-0.2, 0.15))
             self.wind_power = 5.0
             self.wind_turbulence_power = 0.5
+            self.leg_sesitivity = 0.05
+        elif self.level_number == 2:
+            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.15, 0.2))
+            self.START_SPEED = 50.0 * (1 + np.random.uniform(-0.2, 0.15))
+            self.wind_power = 10.0
+            self.wind_turbulence_power = 1.0
+            self.leg_sesitivity = 0.075
+        elif self.level_number == 3:
+            self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.15, 0.2))
+            self.START_SPEED = 70.0 * (1 + np.random.uniform(-0.2, 0.15))
+            self.wind_power = 10.0
+            self.wind_turbulence_power = 1.0
+            self.leg_sesitivity = 0.075
+        elif self.level_number == 4:
+            self.START_HEIGHT = 1200.0 * (1 + np.random.uniform(-0.15, 0.2))
+            self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.2, 0.15))
+            self.wind_power = 12.5
+            self.wind_turbulence_power = 1.25
+            self.leg_sesitivity = 0.1
+        elif self.level_number == 5:
+            self.START_HEIGHT = 1200.0 * (1 + np.random.uniform(-0.15, 0.2))
+            self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.2, 0.15))
+            self.wind_power = 12.5
+            self.wind_turbulence_power = 1.5
+            self.leg_sesitivity = 0.1
+        elif self.level_number == 6:
+            self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.15, 0.2))
+            self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.2, 0.15))
+            self.wind_power = 12.5
+            self.wind_turbulence_power = 1.5
+            self.leg_sesitivity = 0.1
 
         self.H = 1.1 * self.START_HEIGHT * SCALE_S
         self.W = float(VIEWPORT_W) / VIEWPORT_H * self.H
@@ -522,7 +564,7 @@ class VerticalRocket(gym.Env):
         ground_contact = self.legs[0].ground_contact or self.legs[1].ground_contact
         broken_leg = (
             self.legs[0].joint.angle < -
-            0.075 or self.legs[1].joint.angle > 0.075
+            self.leg_sesitivity or self.legs[1].joint.angle > self.leg_sesitivity
         ) and ground_contact
 
         if outside:
@@ -540,7 +582,7 @@ class VerticalRocket(gym.Env):
                                        #    + 0.5 * abs(vel_a)
                                        ))
 
-            print('Outside!')
+            # print('Outside!')
         elif self.game_over:
             done = True
             info['is_success'] = False
@@ -550,7 +592,7 @@ class VerticalRocket(gym.Env):
                                        + 0.5 * abs(angle)
                                        + 0.5 * abs(vel_a)))
 
-            print('Crashed!')
+            # print('Crashed!')
         elif broken_leg:
             done = True
             info['is_success'] = False
@@ -558,7 +600,7 @@ class VerticalRocket(gym.Env):
             reward = max(-1.0, -0.5 * (5.0 * (self.lander.linearVelocity[1] / self.START_SPEED)**2
                                        + 5.0 * abs(angle)))
 
-            print('Broken leg!')
+            # print('Broken leg!')
         else:
             shaping = 0
 
@@ -569,7 +611,7 @@ class VerticalRocket(gym.Env):
             shaping -= 3.0 * \
                 (self.lander.linearVelocity[1] / 100.0)**2
 
-            shaping -= 2.5 * abs(x_distance)
+            shaping -= 3.0 * abs(x_distance)
             shaping -= 5.0 * ((pos.y - self.shipheight) /
                               (1000.0 - self.shipheight))**2.0
 
@@ -592,7 +634,8 @@ class VerticalRocket(gym.Env):
                 reward = 10.0
                 done = True
                 info['is_success'] = True
-                print('Successful landing!')
+                print(
+                    f'>>>>>>>>>>>>>>>>>> Successful landing with level {self.level_number}!')
 
         if not done:
             reward = np.clip(reward, -1, 1)
