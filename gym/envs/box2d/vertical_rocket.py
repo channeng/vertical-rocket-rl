@@ -70,8 +70,8 @@ SHIP_HEIGHT = ROCKET_WIDTH
 SHIP_WIDTH = SHIP_HEIGHT * 80
 
 # VIEWPORT
-VIEWPORT_H = 720
-VIEWPORT_W = 500
+VIEWPORT_H = 1000
+VIEWPORT_W = 700
 
 
 class ContactDetector(contactListener):
@@ -224,8 +224,8 @@ class VerticalRocket(gym.Env):
             self.wind_turbulence_power = 1.5
             self.leg_sesitivity = 0.1
         elif self.level_number == 6:
-            self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.15, 0.2))
-            self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.2, 0.15))
+            self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.2, 0.2))
+            self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
             self.wind_power = 12.5
             self.wind_turbulence_power = 1.5
             self.leg_sesitivity = 0.1
