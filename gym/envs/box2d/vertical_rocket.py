@@ -524,11 +524,11 @@ class VerticalRocket(gym.Env):
         self.world.Step(1.0 / FPS, 60, 60)
 
         pos = self.lander.position
-        vel_l = np.array(self.lander.linearVelocity) / self.START_SPEED
+        vel_l = np.array(self.lander.linearVelocity) / 100.0
         vel_a = self.lander.angularVelocity
         x_distance = 2.0 * (pos.x - self.W / 2) / self.W
         y_distance = 2.0 * ((pos.y - self.shipheight) /
-                            (self.H - self.shipheight) - 0.5)
+                            (1000.0 - self.shipheight) - 0.5)
 
         angle = (self.lander.angle / np.pi) % 2
         # Normalize to [-1, 1]
