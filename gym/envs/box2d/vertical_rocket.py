@@ -597,7 +597,7 @@ class VerticalRocket(gym.Env):
             done = True
             info['is_success'] = False
 
-            reward = max(-1.0, -0.5 * (5.0 * (self.lander.linearVelocity[1] / self.START_SPEED)**2
+            reward = max(-1.0, -0.5 * (8.0 * (self.lander.linearVelocity[1] / self.START_SPEED)**2
                                        + 5.0 * abs(angle)))
 
             # print('Broken leg!')
