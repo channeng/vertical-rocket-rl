@@ -73,6 +73,59 @@ SHIP_WIDTH = SHIP_HEIGHT * 80
 VIEWPORT_H = 1000
 VIEWPORT_W = 700
 
+CURRICULUM_PARAMS = [{
+    'level': 0,
+    'angle': 5.0,
+    'vel_a': 5.0,
+    'vel_l0': 0.5,
+    'vel_l1': 5.0,
+    'x_distance': 3.0,
+    'y_distance': 5.0,
+    'ground_contact': 5.0,
+
+    'start_height': 300.0,
+    'start_speed': 10.0,
+    'wind_power': 0.0,
+    'wind_turbulence_power': 0.0,
+    'leg_sesitivity': 0.1,
+    'initial_x_random': 0.0,
+    'random_velocity_factor': 0.0,
+}, {
+    'level': 1,
+    'angle': 5.0,
+    'vel_a': 5.0,
+    'vel_l0': 0.5,
+    'vel_l1': 5.0,
+    'x_distance': 3.0,
+    'y_distance': 5.0,
+    'ground_contact': 5.0,
+
+    'start_height': 300.0,
+    'start_speed': 10.0,
+    'wind_power': 0.0,
+    'wind_turbulence_power': 0.0,
+    'leg_sesitivity': 0.05,
+    'initial_x_random': 0.0,
+    'random_velocity_factor': 0.0,
+}, {
+    'level': 2,
+    'angle': 5.0,
+    'vel_a': 5.0,
+    'vel_l0': 0.5,
+    'vel_l1': 5.0,
+    'x_distance': 3.0,
+    'y_distance': 5.0,
+    'ground_contact': 5.0,
+
+    'start_height': 300.0,
+    'start_speed': 10.0,
+    'wind_power': 0.0,
+    'wind_turbulence_power': 0.0,
+    'leg_sesitivity': 0.01,
+    'initial_x_random': 0.0,
+    'random_velocity_factor': 0.0,
+}]
+
 
 class ContactDetector(contactListener):
     def __init__(self, env):
@@ -169,66 +222,78 @@ class VerticalRocket(gym.Env):
     def reset(self, seed=None, options=None):
         self._destroy()
 
-        # print(f"******** LEVEL {self.level_number} ********")
+        self.START_HEIGHT = CURRICULUM_PARAMS[self.level_number]['start_height']
+        self.START_SPEED = CURRICULUM_PARAMS[self.level_number]['start_speed']
+        self.wind_power = CURRICULUM_PARAMS[self.level_number]['wind_power']
+        self.wind_turbulence_power = CURRICULUM_PARAMS[self.level_number]['wind_turbulence_power']
+        self.leg_sesitivity = CURRICULUM_PARAMS[self.level_number]['leg_sesitivity']
+        self.initial_x_random = CURRICULUM_PARAMS[self.level_number]['initial_x_random']
+        self.random_velocity_factor = CURRICULUM_PARAMS[self.level_number]['random_velocity_factor']
 
-        # if self.level_number >= 2:
-        #     self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.1, 0.1))
-        #     self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
-        #     self.wind_power = 15.0
-        #     self.wind_turbulence_power = 1.5
+        # if self.level_number == 0:
+        #     self.START_HEIGHT = 400.0
+        #     self.START_SPEED = 20.0
+        #     self.wind_power = 0.0
+        #     self.wind_turbulence_power = 0.0
+        #     self.leg_sesitivity = 0.01
+        #     self.initial_x_random = 0.0
+        #     self.random_velocity_factor = 0.0
         # elif self.level_number == 1:
-        #     self.START_HEIGHT = 800.0 * (1 + np.random.uniform(-0.15, 0.2))
-        #     self.START_SPEED = 60.0 * (1 + np.random.uniform(-0.2, 0.15))
-        #     self.wind_power = 10.0
-        #     self.wind_turbulence_power = 1.0
-        # elif self.level_number == 0:
         #     self.START_HEIGHT = 400.0 * (1 + np.random.uniform(-0.25, 0.25))
         #     self.START_SPEED = 20.0 * (1 + np.random.uniform(-0.25, 0.25))
+        #     self.wind_power = 2.5
+        #     self.wind_turbulence_power = 0.25
+        #     self.leg_sesitivity = 0.01
+        #     self.initial_x_random = 0.03
+        #     self.random_velocity_factor = 0.1
+        # elif self.level_number == 2:
+        #     self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.15, 0.2))
+        #     self.START_SPEED = 50.0 * (1 + np.random.uniform(-0.2, 0.15))
         #     self.wind_power = 5.0
         #     self.wind_turbulence_power = 0.5
-
-        if self.level_number == 0:
-            self.START_HEIGHT = 400.0 * (1 + np.random.uniform(-0.25, 0.25))
-            self.START_SPEED = 20.0 * (1 + np.random.uniform(-0.25, 0.25))
-            self.wind_power = 2.5
-            self.wind_turbulence_power = 0.25
-            self.leg_sesitivity = 0.01
-        elif self.level_number == 1:
-            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.15, 0.2))
-            self.START_SPEED = 50.0 * (1 + np.random.uniform(-0.2, 0.15))
-            self.wind_power = 5.0
-            self.wind_turbulence_power = 0.5
-            self.leg_sesitivity = 0.05
-        elif self.level_number == 2:
-            self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.15, 0.2))
-            self.START_SPEED = 50.0 * (1 + np.random.uniform(-0.2, 0.15))
-            self.wind_power = 10.0
-            self.wind_turbulence_power = 1.0
-            self.leg_sesitivity = 0.075
-        elif self.level_number == 3:
-            self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.15, 0.2))
-            self.START_SPEED = 70.0 * (1 + np.random.uniform(-0.2, 0.15))
-            self.wind_power = 10.0
-            self.wind_turbulence_power = 1.0
-            self.leg_sesitivity = 0.075
-        elif self.level_number == 4:
-            self.START_HEIGHT = 1200.0 * (1 + np.random.uniform(-0.15, 0.2))
-            self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.2, 0.15))
-            self.wind_power = 12.5
-            self.wind_turbulence_power = 1.25
-            self.leg_sesitivity = 0.075
-        elif self.level_number == 5:
-            self.START_HEIGHT = 1200.0 * (1 + np.random.uniform(-0.15, 0.2))
-            self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.2, 0.15))
-            self.wind_power = 12.5
-            self.wind_turbulence_power = 1.5
-            self.leg_sesitivity = 0.05
-        elif self.level_number == 6:
-            self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.2, 0.2))
-            self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
-            self.wind_power = 12.5
-            self.wind_turbulence_power = 1.5
-            self.leg_sesitivity = 0.01
+        #     self.leg_sesitivity = 0.05
+        #     self.initial_x_random = 0.1
+        #     self.random_velocity_factor = 0.3
+        # elif self.level_number == 3:
+        #     self.START_HEIGHT = 700.0 * (1 + np.random.uniform(-0.15, 0.2))
+        #     self.START_SPEED = 50.0 * (1 + np.random.uniform(-0.2, 0.15))
+        #     self.wind_power = 10.0
+        #     self.wind_turbulence_power = 1.0
+        #     self.leg_sesitivity = 0.075
+        #     self.initial_x_random = 0.3
+        #     self.random_velocity_factor = 0.3
+        # elif self.level_number == 4:
+        #     self.START_HEIGHT = 1000.0 * (1 + np.random.uniform(-0.15, 0.2))
+        #     self.START_SPEED = 70.0 * (1 + np.random.uniform(-0.2, 0.15))
+        #     self.wind_power = 10.0
+        #     self.wind_turbulence_power = 1.0
+        #     self.leg_sesitivity = 0.075
+        #     self.initial_x_random = 0.3
+        #     self.random_velocity_factor = 0.3
+        # elif self.level_number == 5:
+        #     self.START_HEIGHT = 1200.0 * (1 + np.random.uniform(-0.15, 0.2))
+        #     self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.2, 0.15))
+        #     self.wind_power = 12.5
+        #     self.wind_turbulence_power = 1.25
+        #     self.leg_sesitivity = 0.075
+        #     self.initial_x_random = 0.3
+        #     self.random_velocity_factor = 0.3
+        # elif self.level_number == 6:
+        #     self.START_HEIGHT = 1200.0 * (1 + np.random.uniform(-0.15, 0.2))
+        #     self.START_SPEED = 80.0 * (1 + np.random.uniform(-0.2, 0.15))
+        #     self.wind_power = 12.5
+        #     self.wind_turbulence_power = 1.5
+        #     self.leg_sesitivity = 0.05
+        #     self.initial_x_random = 0.3
+        #     self.random_velocity_factor = 0.3
+        # elif self.level_number == 7:
+        #     self.START_HEIGHT = 1500.0 * (1 + np.random.uniform(-0.2, 0.2))
+        #     self.START_SPEED = 100.0 * (1 + np.random.uniform(-0.1, 0.1))
+        #     self.wind_power = 12.5
+        #     self.wind_turbulence_power = 1.5
+        #     self.leg_sesitivity = 0.01
+        #     self.initial_x_random = 0.3
+        #     self.random_velocity_factor = 0.3
 
         self.H = 1.1 * self.START_HEIGHT * SCALE_S
         self.W = float(VIEWPORT_W) / VIEWPORT_H * self.H
@@ -316,20 +381,9 @@ class VerticalRocket(gym.Env):
 
         self.ship.color1 = (0.2, 0.2, 0.2)
 
-        def initial_rocket_pos(level):
-            initial_x = self.W / 2
-            initial_y = self.H * 0.95
-            if level >= 2:
-                initial_x_random = 0.3
-            elif level == 1:
-                initial_x_random = 0.1
-            else:
-                initial_x_random = 0.03
-            initial_x += self.W * np.random.uniform(
-                -initial_x_random, initial_x_random)
-            return initial_x, initial_y
-
-        initial_x, initial_y = initial_rocket_pos(self.level_number)
+        initial_y = self.H * 0.95
+        initial_x = self.W / 2 + self.W * \
+            np.random.uniform(-self.initial_x_random, self.initial_x_random)
         self.lander = self.world.CreateDynamicBody(
             position=(initial_x, initial_y),
             angle=0.0,
@@ -409,23 +463,13 @@ class VerticalRocket(gym.Env):
 
             self.legs.append(leg)
 
-        def random_factor_velocity(level):
-            if level >= 2:
-                return 0.3
-            elif level == 1:
-                return 0.1
-            else:
-                return 0
-
-        random_velocity_factor = random_factor_velocity(self.level_number)
-
         self.lander.linearVelocity = (
-            -np.random.uniform(0, random_velocity_factor) *
+            -np.random.uniform(0, self.random_velocity_factor) *
             self.START_SPEED * (initial_x - self.W / 2) / self.W,
             -self.START_SPEED,
         )
 
-        self.lander.angularVelocity = (1 + random_velocity_factor) * np.random.uniform(
+        self.lander.angularVelocity = (1 + self.random_velocity_factor) * np.random.uniform(
             -1.0, 1.0
         )
 
@@ -442,9 +486,6 @@ class VerticalRocket(gym.Env):
             return obs, info
 
     def step(self, action):
-
-        self.force_dir = 0
-
         if self.continuous:
             action = np.clip(action, -1, 1)
             self.gimbal += action[0] * 0.6 / FPS
@@ -453,6 +494,8 @@ class VerticalRocket(gym.Env):
                 self.force_dir = 1
             elif action[2] < -0.5:
                 self.force_dir = -1
+            else:
+                self.force_dir = 0
         else:
             if action == 0:
                 self.gimbal += 0.01
@@ -497,7 +540,7 @@ class VerticalRocket(gym.Env):
             impulse=force_c, point=force_pos_c, wake=False)
 
         # Wind
-        if not (self.legs[0].ground_contact or self.legs[1].ground_contact):
+        if CURRICULUM_PARAMS[self.level_number]['wind_power'] > 0.0 and not (self.legs[0].ground_contact or self.legs[1].ground_contact):
             wind_mag = (
                 np.tanh(
                     np.sin(0.02 * self.wind_idx) +
@@ -526,7 +569,7 @@ class VerticalRocket(gym.Env):
         pos = self.lander.position
         vel_l = np.array(self.lander.linearVelocity) / 100.0
         vel_a = self.lander.angularVelocity
-        x_distance = 2.0 * (pos.x - self.W / 2) / self.W
+        x_distance = 2.0 * (pos.x - self.W / 2) / 700.0
         y_distance = 2.0 * ((pos.y - self.shipheight) /
                             (1000.0 - self.shipheight) - 0.5)
 
@@ -571,51 +614,53 @@ class VerticalRocket(gym.Env):
             done = True
             info['is_success'] = False
 
-            reward = max(-3.0, -3.0 * (0.5 * abs(vel_l[0])
-                                       + 5.0 *
-                                       (self.lander.linearVelocity[1] /
+            reward = max(-3.0, -10.0 * (CURRICULUM_PARAMS[self.level_number]['vel_l0'] * abs(vel_l[0])
+                                        + CURRICULUM_PARAMS[self.level_number]['vel_l1'] *
+                                        (self.lander.linearVelocity[1] /
                                         self.START_SPEED)**2
-                                       + 5.0 * abs(x_distance)
-                                       + 5.0 * ((pos.y - self.shipheight) /
-                                                (self.H - self.shipheight))**2.0
-                                       #    + 5.0 * abs(angle)
-                                       #    + 0.5 * abs(vel_a)
-                                       ))
+                                        + CURRICULUM_PARAMS[self.level_number]['x_distance'] * abs(x_distance)
+                                        + CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
+                                                                                                (self.H - self.shipheight))**2.0
+                                        ))
 
-            # print('Outside!')
+            print('Outside!')
         elif self.game_over:
             done = True
             info['is_success'] = False
 
-            reward = max(-3.0, -1.0 * (0.5 * abs(vel_l[0])
-                                       + 2.5 * abs(x_distance)
-                                       + 0.5 * abs(angle)
-                                       + 0.5 * abs(vel_a)))
+            reward = max(-3.0, -3.0 * (CURRICULUM_PARAMS[self.level_number]['vel_l0'] * abs(vel_l[0])
+                                       + CURRICULUM_PARAMS[self.level_number]['x_distance'] * abs(x_distance)
+                                       + CURRICULUM_PARAMS[self.level_number]['angle'] * abs(angle)
+                                       + CURRICULUM_PARAMS[self.level_number]['vel_a'] * abs(vel_a)))
 
-            # print('Crashed!')
+            print('Crashed!')
         elif broken_leg:
             done = True
             info['is_success'] = False
 
-            reward = max(-1.0, -0.5 * (8.0 * (self.lander.linearVelocity[1] / self.START_SPEED)**2
-                                       + 5.0 * abs(angle)))
+            reward = max(-1.0, -1.0 * (CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (self.lander.linearVelocity[1] / 100.0)**2
+                                       + CURRICULUM_PARAMS[self.level_number]['angle'] * abs(angle)))
 
-            # print('Broken leg!')
+            print('Broken leg!')
         else:
             shaping = 0
 
-            shaping -= 5.0 * abs(angle)
-            shaping -= 0.5 * abs(vel_a)
+            shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
+                abs(angle)
+            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
+                abs(vel_a)
 
-            shaping -= 0.5 * abs(vel_l[0])
-            shaping -= 3.0 * \
+            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
+                abs(vel_l[0])
+            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * \
                 (self.lander.linearVelocity[1] / 100.0)**2
 
-            shaping -= 3.0 * abs(x_distance)
-            shaping -= 5.0 * ((pos.y - self.shipheight) /
-                              (1000.0 - self.shipheight))**2.0
+            shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
+                abs(x_distance)
+            shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
+                                                                             (1000.0 - self.shipheight))**2.0
 
-            shaping += 0.5 * \
+            shaping += CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
             landed = self.legs[0].ground_contact and self.legs[1].ground_contact

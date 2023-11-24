@@ -27,13 +27,13 @@ LR_INIT = 3e-4
 LR_FINAL = 1e-5
 
 N_EVAL_EPISODES = 50
-EVAL_FREQUENCY = 20_000
+EVAL_FREQUENCY = 10_000
 
-LEVELS = [0, 1]
+LEVELS = [0, 1, 2]
 LEVEL_TRAIN_TIMESTEPS = {
-    0: 800_000,
-    1: 700_000,
-    2: 1_000_000,
+    0: 1_500_000,
+    1: 2_000_000,
+    2: 2_500_000,
 }
 
 
@@ -91,13 +91,13 @@ def train(model, eval_env, level_number):
     for i in range(len(data["timesteps"])):
         print(
             f"{data['timesteps'][i]:>7} -> "
-            f"success rate : {success_rate[i]:.0%}, "
-            f"mean reward  : {mean_reward[i]:.2f}, "
-            f"mean ep length: {mean_ep_lengths[i]:.0f}"
+            f"success rate : {success_rate[i]:>3.0%}, "
+            f"mean reward  : {mean_reward[i]:>5.2f}, "
+            f"mean ep length: {mean_ep_lengths[i]:>5.0f}"
         )
 
 
-initial_level = LEVELS[0]
+initial_level = LEVELS[1]
 ENV_ID = f"VerticalRocket-v1-lvl{initial_level}"
 print(f"Training with {ENV_ID}\n\n")
 
@@ -106,29 +106,29 @@ eval_env = gym.make(ENV_ID)
 eval_env = Monitor(eval_env)
 model = PPO(
     "MlpPolicy", env,
-    learning_rate=LR_INIT,
-    # learning_rate=linear_schedule(LR_INIT),
+    # learning_rate=LR_INIT,
+    learning_rate=linear_schedule(LR_INIT),
     n_steps=2048, batch_size=128, n_epochs=10,
     gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
     normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
     use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=100,
-    tensorboard_log=logs_path,
+    tensorboard_log=logs_path, device="cpu",
     verbose=1
 )
 train(model, eval_env, initial_level)
 env.close()
 eval_env.close()
 
-for level_number in LEVELS[1:]:
-    ENV_ID = f"VerticalRocket-v1-lvl{level_number}"
-    print(f"Training with {ENV_ID}\n\n")
+# for level_number in LEVELS[1:]:
+#     ENV_ID = f"VerticalRocket-v1-lvl{level_number}"
+#     print(f"Training with {ENV_ID}\n\n")
 
-    env = make_vec_env(ENV_ID, n_envs=4)
-    eval_env = gym.make(ENV_ID)
-    eval_env = Monitor(eval_env)
+#     env = make_vec_env(ENV_ID, n_envs=4)
+#     eval_env = gym.make(ENV_ID)
+#     eval_env = Monitor(eval_env)
 
-    model.set_env(env)
-    train(model, eval_env, level_number)
+#     model.set_env(env)
+#     train(model, eval_env, level_number)
 
-    env.close()
-    eval_env.close()
+#     env.close()
+#     eval_env.close()
