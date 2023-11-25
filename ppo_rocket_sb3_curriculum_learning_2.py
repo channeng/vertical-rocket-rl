@@ -50,14 +50,15 @@ def linear_schedule(initial_value: float = LR_INIT) -> Callable[[float], float]:
     return func
 
 
-level = 0
-test_level = 2
+level = 3
+test_level = 3
 
 train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
 
 if args.initial_model:
     print(f'Loading the initial model: {args.initial_model}...')
-    model = PPO.load(args.initial_model, env=train_env)
+    model = PPO.load(args.initial_model, env=train_env,
+                     tensorboard_log=logs_path, device="cpu")
 else:
     model = PPO(
         "MlpPolicy", train_env,

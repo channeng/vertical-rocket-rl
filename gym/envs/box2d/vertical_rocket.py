@@ -145,6 +145,24 @@ CURRICULUM_PARAMS = [{
     'initial_x_random': 0.0,
     'random_velocity_factor': 0.0,
     'random_angular_velocity_factor': 0.3,
+}, {
+    'level': 4,
+    'angle': 4.0,
+    'vel_a': 1.0,
+    'vel_l0': 4.5,
+    'vel_l1': 5.0,
+    'x_distance': 4.0,
+    'y_distance': 5.0,
+    'ground_contact': 5.0,
+
+    'start_height': 300.0,
+    'start_speed': 10.0,
+    'wind_power': 0.0,
+    'wind_turbulence_power': 0.0,
+    'leg_sesitivity': 0.01,
+    'initial_x_random': 0.0,
+    'random_velocity_factor': 0.3,
+    'random_angular_velocity_factor': 0.3,
 }]
 
 
