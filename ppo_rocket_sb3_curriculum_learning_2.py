@@ -12,6 +12,7 @@ from stable_baselines3.common.monitor import Monitor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
+parser.add_argument("-m", "--initial-model", help="The initial model to load")
 args = parser.parse_args()
 
 MODEL_NAME = "ppo-" + args.name
@@ -50,22 +51,27 @@ def linear_schedule(initial_value: float = LR_INIT) -> Callable[[float], float]:
 
 
 level = 0
-test_level = 1
+test_level = 2
 
 train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
-model = PPO(
-    "MlpPolicy", train_env,
-    learning_rate=linear_schedule(LR_INIT),
-    n_steps=2048, batch_size=128, n_epochs=10,
-    gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
-    normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
-    use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=100,
-    tensorboard_log=logs_path, device="cpu",
-    verbose=1
-)
+
+if args.initial_model:
+    print(f'Loading the initial model: {args.initial_model}...')
+    model = PPO.load(args.initial_model, env=train_env)
+else:
+    model = PPO(
+        "MlpPolicy", train_env,
+        learning_rate=linear_schedule(LR_INIT),
+        n_steps=2048, batch_size=256, n_epochs=10,
+        gamma=0.99, gae_lambda=0.95, clip_range=0.2, clip_range_vf=None,
+        normalize_advantage=True, ent_coef=0, vf_coef=0.5, max_grad_norm=0.5,
+        use_sde=False, sde_sample_freq=-1, target_kl=None, stats_window_size=100,
+        tensorboard_log=logs_path, device="cpu",
+        verbose=1
+    )
 
 N_EVAL_EPISODES = 50
-EVAL_FREQUENCY = 10_000
+EVAL_FREQUENCY = 5_000
 eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))
 eval_callback = EvalCallback(
     eval_env,
@@ -156,7 +162,7 @@ while True:
     eval_max_mean_reward = eval_mean_rewards.max()
     success_rate = evaluations['successes'].sum(
         axis=1) / evaluations['successes'].shape[1]
-    if np.any(eval_mean_rewards[-20:] == eval_max_mean_reward) == False or np.any(success_rate == 1.0):
+    if np.any(eval_mean_rewards[-20:] == eval_max_mean_reward) == False or np.any(success_rate >= 0.95):
         os.rename(os.path.join(eval_path, f"evaluations.npz"),
                   os.path.join(eval_path, f"evaluations_level{level}.npz"))
         level += 1

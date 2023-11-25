@@ -75,11 +75,11 @@ VIEWPORT_W = 700
 
 CURRICULUM_PARAMS = [{
     'level': 0,
-    'angle': 5.0,
-    'vel_a': 5.0,
-    'vel_l0': 0.5,
+    'angle': 4.0,
+    'vel_a': 1.0,
+    'vel_l0': 4.5,
     'vel_l1': 5.0,
-    'x_distance': 3.0,
+    'x_distance': 4.0,
     'y_distance': 5.0,
     'ground_contact': 5.0,
 
@@ -90,13 +90,14 @@ CURRICULUM_PARAMS = [{
     'leg_sesitivity': 0.1,
     'initial_x_random': 0.0,
     'random_velocity_factor': 0.0,
+    'random_angular_velocity_factor': 0.0,
 }, {
     'level': 1,
-    'angle': 5.0,
-    'vel_a': 5.0,
-    'vel_l0': 0.5,
+    'angle': 4.0,
+    'vel_a': 1.0,
+    'vel_l0': 4.5,
     'vel_l1': 5.0,
-    'x_distance': 3.0,
+    'x_distance': 4.0,
     'y_distance': 5.0,
     'ground_contact': 5.0,
 
@@ -107,13 +108,14 @@ CURRICULUM_PARAMS = [{
     'leg_sesitivity': 0.05,
     'initial_x_random': 0.0,
     'random_velocity_factor': 0.0,
+    'random_angular_velocity_factor': 0.0,
 }, {
     'level': 2,
-    'angle': 5.0,
-    'vel_a': 5.0,
-    'vel_l0': 0.5,
+    'angle': 4.0,
+    'vel_a': 1.0,
+    'vel_l0': 4.5,
     'vel_l1': 5.0,
-    'x_distance': 3.0,
+    'x_distance': 4.0,
     'y_distance': 5.0,
     'ground_contact': 5.0,
 
@@ -124,6 +126,25 @@ CURRICULUM_PARAMS = [{
     'leg_sesitivity': 0.01,
     'initial_x_random': 0.0,
     'random_velocity_factor': 0.0,
+    'random_angular_velocity_factor': 0.0,
+}, {
+    'level': 3,
+    'angle': 4.0,
+    'vel_a': 1.0,
+    'vel_l0': 4.5,
+    'vel_l1': 5.0,
+    'x_distance': 4.0,
+    'y_distance': 5.0,
+    'ground_contact': 5.0,
+
+    'start_height': 300.0,
+    'start_speed': 10.0,
+    'wind_power': 0.0,
+    'wind_turbulence_power': 0.0,
+    'leg_sesitivity': 0.01,
+    'initial_x_random': 0.0,
+    'random_velocity_factor': 0.0,
+    'random_angular_velocity_factor': 0.3,
 }]
 
 
@@ -229,6 +250,8 @@ class VerticalRocket(gym.Env):
         self.leg_sesitivity = CURRICULUM_PARAMS[self.level_number]['leg_sesitivity']
         self.initial_x_random = CURRICULUM_PARAMS[self.level_number]['initial_x_random']
         self.random_velocity_factor = CURRICULUM_PARAMS[self.level_number]['random_velocity_factor']
+        self.random_angular_velocity_factor = CURRICULUM_PARAMS[
+            self.level_number]['random_angular_velocity_factor']
 
         # if self.level_number == 0:
         #     self.START_HEIGHT = 400.0
@@ -469,9 +492,9 @@ class VerticalRocket(gym.Env):
             -self.START_SPEED,
         )
 
-        self.lander.angularVelocity = (1 + self.random_velocity_factor) * np.random.uniform(
+        self.lander.angularVelocity = (1 + self.random_angular_velocity_factor) * np.random.uniform(
             -1.0, 1.0
-        )
+        ) if self.random_angular_velocity_factor > 0 else 0.0
 
         self.drawlist = (
             self.legs + [self.water] + [self.ship] +

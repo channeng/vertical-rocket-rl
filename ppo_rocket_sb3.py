@@ -33,7 +33,7 @@ LEVELS = [0, 1, 2]
 LEVEL_TRAIN_TIMESTEPS = {
     0: 1_500_000,
     1: 2_000_000,
-    2: 2_500_000,
+    2: 2_000_000,
 }
 
 
@@ -97,7 +97,7 @@ def train(model, eval_env, level_number):
         )
 
 
-initial_level = LEVELS[1]
+initial_level = LEVELS[2]
 ENV_ID = f"VerticalRocket-v1-lvl{initial_level}"
 print(f"Training with {ENV_ID}\n\n")
 
