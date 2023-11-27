@@ -50,10 +50,12 @@ def linear_schedule(initial_value: float = LR_INIT) -> Callable[[float], float]:
     return func
 
 
-level = 5
-test_level = 5
+level = 0
+test_level = 9
 
 train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
+eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))
+test_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{test_level}"))
 
 if args.initial_model:
     print(f'Loading the initial model: {args.initial_model}...')
@@ -73,7 +75,6 @@ else:
 
 N_EVAL_EPISODES = 50
 EVAL_FREQUENCY = 5_000
-eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))
 eval_callback = EvalCallback(
     eval_env,
     best_model_save_path=save_path + f"-lvl{level}",
@@ -112,8 +113,8 @@ test_logger = open(os.path.join(
 test_logger.write(
     "iteration,level,test_reward,test_episode_length,test_successful\n")
 
-test_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{test_level}"))
-highest_reward = -np.inf
+highest_reward = 0.0
+plateau = 0
 while True:
     print(f">>>>>>>>>>>>>>>>>> Training with the curriculum level {level}...")
     model.learn(
@@ -128,70 +129,81 @@ while True:
     evaluations = np.load(eval_file)
     timestamp = evaluations['timesteps'][-1]
 
-    rewards = []
-    episode_lengths = []
-    successes = []
+    test_rewards = []
+    test_epi_lengths = []
+    test_successes = []
     for _ in range(50):
-        total_reward, episode_length, successful = play(test_env, model)
-        rewards.append(total_reward)
-        episode_lengths.append(episode_length)
-        successes.append(successful)
+        test_reward, test_epi_len, test_successful = play(test_env, model)
+        test_rewards.append(test_reward)
+        test_epi_lengths.append(test_epi_len)
+        test_successes.append(test_successful)
 
         test_logger.write(
-            f"{timestamp},{level},{total_reward},{episode_length},{successful}\n")
+            f"{timestamp},{level},{test_reward},{test_epi_len},{test_successful}\n")
     test_logger.flush()
 
-    mean_reward = np.mean(rewards)
-    mean_episode_length = np.mean(episode_lengths)
-    success_rate = np.mean(successes)
+    test_mean_reward = np.mean(test_rewards)
+    test_mean_epi_len = np.mean(test_epi_lengths)
+    test_success_rate = np.mean(test_successes)
 
     agg_test_logger.write(
-        f"{timestamp},{level},{mean_reward},{mean_episode_length},{success_rate}\n")
+        f"{timestamp},{level},{test_mean_reward},{test_mean_epi_len},{test_success_rate}\n")
     agg_test_logger.flush()
 
-    if mean_reward > highest_reward:
-        highest_reward = mean_reward
-        print(f">>>>> Found a better model:")
+    if test_success_rate == 1.0:
+        print(f">>>>>> The model has reached 100% success rate.")
         print(f">>>>> Timestamp: {timestamp}")
         print(f">>>>> Level: {level}")
-        print(f">>>>> Mean reward: {mean_reward}")
-        print(f">>>>> Mean episode length: {mean_episode_length}")
-        print(f">>>>> Success rate: {success_rate}")
-        model.save(os.path.join(save_path, f"best_curriculum_learning_model"))
+        print(f">>>>> Mean reward: {test_mean_reward}")
+        print(f">>>>> Mean episode length: {test_mean_epi_len}")
+        print(f">>>>> Success rate: {test_success_rate}")
+        model.save(os.path.join(
+            save_path, f"best_curriculum_learning_model_{level}_final"))
+        break
+    elif test_mean_reward >= highest_reward:
+        print(
+            f">>>>> Found a better model: old reward {highest_reward}, new reward {test_mean_reward}")
+        print(f">>>>> Timestamp: {timestamp}")
+        print(f">>>>> Level: {level}")
+        print(f">>>>> Mean reward: {test_mean_reward}")
+        print(f">>>>> Mean episode length: {test_mean_epi_len}")
+        print(f">>>>> Success rate: {test_success_rate}")
+        highest_reward = test_mean_reward
+        plateau = 0
+        model.save(os.path.join(
+            save_path, f"best_curriculum_learning_model_{level}"))
 
-    eval_mean_rewards = evaluations['results'].mean(axis=1)
-    eval_max_mean_reward = eval_mean_rewards.max()
-    success_rate = evaluations['successes'].sum(
-        axis=1) / evaluations['successes'].shape[1]
-    threshold = -100 if level == test_level else -50
-    go_next = np.any(eval_mean_rewards[threshold:]
-                     == eval_max_mean_reward) == False
-    # or np.any(success_rate >= 0.95)
-    if go_next:
-        if np.any(eval_mean_rewards[threshold:] == eval_max_mean_reward) == False:
-            print(f">>>>>> The model has plateaued.")
-        if np.any(success_rate >= 0.95):
-            print(f">>>>>> The model has reached 95% success rate.")
+        if level < test_level:
+            os.rename(os.path.join(eval_path, f"evaluations.npz"),
+                      os.path.join(eval_path, f"evaluations_level{level}.npz"))
+            level += 1
+            print(f'>>>>>>>>>>>>>>>>>> Going to the next level {level}...')
 
-        os.rename(os.path.join(eval_path, f"evaluations.npz"),
-                  os.path.join(eval_path, f"evaluations_level{level}.npz"))
-        level += 1
-        if level > test_level:
+            train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
+            train_env.reset()
+            model.env = train_env
+
+            eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))
+            eval_env.reset()
+            eval_callback = EvalCallback(
+                eval_env,
+                best_model_save_path=save_path + f"-lvl{level}",
+                log_path=eval_path,
+                eval_freq=EVAL_FREQUENCY,
+                n_eval_episodes=N_EVAL_EPISODES,
+                deterministic=True,
+                render=False
+            )
+    else:
+        plateau += 1
+        print(f">>>>> The learning has reached a plateau: {plateau}")
+        if plateau == 100:
+            print(f">>>>> The model has reached a plateau for 100 times.")
+            print(f">>>>> Timestamp: {timestamp}")
+            print(f">>>>> Level: {level}")
+            print(f">>>>> Mean reward: {test_mean_reward}")
+            print(f">>>>> Mean episode length: {test_mean_epi_len}")
+            print(f">>>>> Success rate: {test_success_rate}")
+            model.save(os.path.join(
+                save_path, f"best_curriculum_learning_model_{level}_plateau"))
             break
-        print(f'>>>>>>>>>>>>>>>>>> Going to the next level {level}...')
-
-        train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
-        train_env.reset()
-        model.env = train_env
-
-        eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))
-        eval_env.reset()
-        eval_callback = EvalCallback(
-            eval_env,
-            best_model_save_path=save_path + f"-lvl{level}",
-            log_path=eval_path,
-            eval_freq=EVAL_FREQUENCY,
-            n_eval_episodes=N_EVAL_EPISODES,
-            deterministic=True,
-            render=False
-        )
