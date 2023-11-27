@@ -113,7 +113,7 @@ test_logger = open(os.path.join(
 test_logger.write(
     "iteration,level,test_reward,test_episode_length,test_successful\n")
 
-highest_reward = 0.0
+highest_reward = -5.0
 plateau = 0
 while True:
     print(f">>>>>>>>>>>>>>>>>> Training with the curriculum level {level}...")
