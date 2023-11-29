@@ -73,8 +73,8 @@ SHIP_HEIGHT = ROCKET_WIDTH
 SHIP_WIDTH = SHIP_HEIGHT * 80
 
 # VIEWPORT
-VIEWPORT_H = 1000
-VIEWPORT_W = 700
+VIEWPORT_H = 500
+VIEWPORT_W = 350
 
 DEBUG = True
 
@@ -585,25 +585,25 @@ class VerticalRocket(gym.Env):
         else:
             shaping = 0
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
-                abs(angle)**2
-            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
-                abs(vel_a)
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
+            #     abs(angle)**2
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
+            #     abs(vel_a)
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['speed'] * speed
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['speed'] * speed
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
-                abs(vel_l[0])
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
+            #     abs(vel_l[0])
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
-                self.lander.linearVelocity[1] / 100.0)**2
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
+            #     self.lander.linearVelocity[1] / 100.0)**2
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['distance'] * distance
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['distance'] * distance
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
-                abs(x_distance)
-            shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
-                                                                             (1000.0 - self.shipheight))**2.0
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
+            #     abs(x_distance)
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
+            #                                                                  (1000.0 - self.shipheight))**2.0
 
             shaping += CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
