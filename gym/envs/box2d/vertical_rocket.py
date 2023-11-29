@@ -79,7 +79,7 @@ VIEWPORT_W = 700
 DEBUG = True
 
 CURRICULUM_PARAMS = []
-num_levels = 10
+num_levels = 1
 for i in range(num_levels):
     CURRICULUM_PARAMS.append({
         'level': i,
@@ -95,7 +95,7 @@ for i in range(num_levels):
         'ground_contact': 0.5,
         'time_limit': 2000,
 
-        'start_height': 400.0,
+        'start_height': 300.0,
         'start_speed': 10.0 + i * (20.0 - 10.0) / num_levels,
         'wind_power': 0.0 + i * (20.0 - 0.0) / num_levels,
         'wind_turbulence_power': 0.0 + i * (2.0 - 0.0) / num_levels,
@@ -582,41 +582,41 @@ class VerticalRocket(gym.Env):
 
             print('Timeout!')
         else:
-            shaping = 0
+            # shaping = 0
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
-                abs(angle)**2
-            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
-                abs(vel_a)
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
+            #     abs(angle)**2
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
+            #     abs(vel_a)
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['speed'] * speed
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['speed'] * speed
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
-                abs(vel_l[0])
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
+            #     abs(vel_l[0])
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
-                self.lander.linearVelocity[1] / 100.0)**2
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
+            #     self.lander.linearVelocity[1] / 100.0)**2
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['distance'] * distance
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['distance'] * distance
 
-            shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
-                abs(x_distance)
-            shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
-                                                                             (1000.0 - self.shipheight))**2.0
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
+            #     abs(x_distance)
+            # shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
+            #                                                                  (1000.0 - self.shipheight))**2.0
 
-            shaping += CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
-                (self.legs[0].ground_contact + self.legs[1].ground_contact)
+            # shaping += CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
+            #     (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
-            landed = self.legs[0].ground_contact and self.legs[1].ground_contact
-            if landed:
-                self.landed_ticks += 1
-            else:
-                self.landed_ticks = 0
-            shaping += self.landed_ticks / FPS
+            # landed = self.legs[0].ground_contact and self.legs[1].ground_contact
+            # if landed:
+            #     self.landed_ticks += 1
+            # else:
+            #     self.landed_ticks = 0
+            # shaping += self.landed_ticks / FPS
 
-            if self.prev_shaping is not None:
-                reward += shaping - self.prev_shaping
-            self.prev_shaping = shaping
+            # if self.prev_shaping is not None:
+            #     reward += shaping - self.prev_shaping
+            # self.prev_shaping = shaping
 
             if self.landed_ticks >= FPS:
                 reward = 10.0

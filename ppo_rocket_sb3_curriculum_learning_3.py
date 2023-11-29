@@ -10,6 +10,8 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 
+import re
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
 parser.add_argument("-m", "--initial-model", help="The initial model to load")
@@ -51,7 +53,7 @@ def linear_schedule(initial_value: float = LR_INIT) -> Callable[[float], float]:
 
 
 level = 0
-test_level = 9
+test_level = 0
 
 train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
 eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))
@@ -129,11 +131,17 @@ while True:
     evaluations = np.load(eval_file)
     timestamp = evaluations['timesteps'][-1]
 
+    latest_model_path = os.path.join(
+        "models", MODEL_NAME, f'saves-lvl{level}', 'best_model.zip')
+
+    print(f"Testing model: {latest_model_path}")
+    test_model = PPO.load(latest_model_path, device="cpu")
+
     test_rewards = []
     test_epi_lengths = []
     test_successes = []
     for _ in range(50):
-        test_reward, test_epi_len, test_successful = play(test_env, model)
+        test_reward, test_epi_len, test_successful = play(test_env, test_model)
         test_rewards.append(test_reward)
         test_epi_lengths.append(test_epi_len)
         test_successes.append(test_successful)
