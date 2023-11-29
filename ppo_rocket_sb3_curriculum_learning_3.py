@@ -54,6 +54,7 @@ def linear_schedule(initial_value: float = LR_INIT) -> Callable[[float], float]:
 
 level = 0
 test_level = 0
+# test_level = 9
 
 train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
 eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))

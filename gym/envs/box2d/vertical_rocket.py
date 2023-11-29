@@ -80,6 +80,7 @@ DEBUG = True
 
 CURRICULUM_PARAMS = []
 num_levels = 1
+# num_levels = 10
 for i in range(num_levels):
     i = 0
     CURRICULUM_PARAMS.append({
@@ -100,7 +101,7 @@ for i in range(num_levels):
         'start_speed': 10.0 + i * (20.0 - 10.0) / num_levels,
         'wind_power': 0.0 + i * (20.0 - 0.0) / num_levels,
         'wind_turbulence_power': 0.0 + i * (2.0 - 0.0) / num_levels,
-        'leg_sesitivity': 0.1 + i * (0.01 - 0.1) / num_levels,
+        'leg_sesitivity': 0.01 + i * (0.01 - 0.1) / num_levels,
         'initial_x_random': 0.1 + i * (0.3 - 0.1) / num_levels,
         'random_velocity_factor': 0.1 + i * (0.3 - 0.1) / num_levels,
         'random_angular_velocity_factor': 0.1 + i * (0.3 - 0.1) / num_levels,
@@ -585,6 +586,7 @@ class VerticalRocket(gym.Env):
         else:
             shaping = 0
 
+            # Stage 3
             # shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
             #     abs(angle)**2
             # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
@@ -598,13 +600,14 @@ class VerticalRocket(gym.Env):
             # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
             #     self.lander.linearVelocity[1] / 100.0)**2
 
+            # Stage 2
             # shaping -= CURRICULUM_PARAMS[self.level_number]['distance'] * distance
 
             # shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
             #     abs(x_distance)
             # shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
             #                                                                  (1000.0 - self.shipheight))**2.0
-
+            # Stage 1
             shaping += CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
