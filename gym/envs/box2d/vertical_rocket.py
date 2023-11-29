@@ -100,9 +100,9 @@ for i in range(num_levels):
         'wind_power': 0.0 + i * (20.0 - 0.0) / num_levels,
         'wind_turbulence_power': 0.0 + i * (2.0 - 0.0) / num_levels,
         'leg_sesitivity': 0.1 + i * (0.01 - 0.1) / num_levels,
-        'initial_x_random': 0.0 + i * (0.3 - 0.0) / num_levels,
-        'random_velocity_factor': 0.0 + i * (0.3 - 0.0) / num_levels,
-        'random_angular_velocity_factor': 0.0 + i * (0.3 - 0.0) / num_levels,
+        'initial_x_random': 0.1 + i * (0.3 - 0.0) / num_levels,
+        'random_velocity_factor': 0.1 + i * (0.3 - 0.0) / num_levels,
+        'random_angular_velocity_factor': 0.1 + i * (0.3 - 0.0) / num_levels,
     })
 
 print(CURRICULUM_PARAMS)
