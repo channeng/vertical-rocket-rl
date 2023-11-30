@@ -139,6 +139,7 @@ class VerticalRocket(gym.Env):
 
     def __init__(self, level_number=0, continuous=True):
         super(VerticalRocket, self).__init__()
+        self.stage = 3
         self.env_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         self.run_index = 0
         self.level_number = level_number
@@ -586,28 +587,47 @@ class VerticalRocket(gym.Env):
         else:
             shaping = 0
 
-            # Stage 3
-            # shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
-            #     abs(angle)**2
-            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
-            #     abs(vel_a)
+            if self.stage == 3:
+                # Legs sensitivity 0.1
+                # >>>>>> The model has reached 100% success rate.
+                # >>>>> Timestamp: 560000
+                # >>>>> Level: 0
+                # >>>>> Mean reward: 10.575385848950047
+                # >>>>> Mean episode length: 591.38
+                # >>>>> Success rate: 1.0
 
-            # shaping -= CURRICULUM_PARAMS[self.level_number]['speed'] * speed
+                # Legs sensitivity 0.01
+                # >>>>>> The model has reached 100% success rate.
+                # >>>>> Timestamp: 3600000
+                # >>>>> Level: 0
+                # >>>>> Mean reward: 9.53942092188086
+                # >>>>> Mean episode length: 798.64
+                # >>>>> Success rate: 1.0
+                shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
+                    abs(angle)**2
+                shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
+                    abs(vel_a)
 
-            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
-            #     abs(vel_l[0])
+                shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
+                    abs(vel_l[0])
 
-            # shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
-            #     self.lander.linearVelocity[1] / 100.0)**2
+                shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
+                    self.lander.linearVelocity[1] / 100.0)**2
 
-            # Stage 2
-            # shaping -= CURRICULUM_PARAMS[self.level_number]['distance'] * distance
+            if self.stage in (2, 3):
+                # >>>>>> The model has reached 100% success rate.
+                # >>>>> Timestamp: 800000
+                # >>>>> Level: 0
+                # >>>>> Mean reward: 9.516773679345247
+                # >>>>> Mean episode length: 761.4
+                # >>>>> Success rate: 1.0
+                shaping -= CURRICULUM_PARAMS[self.level_number]['distance'] * distance
+                shaping -= CURRICULUM_PARAMS[self.level_number]['speed'] * speed
+                shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
+                    abs(x_distance)
+                shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
+                                                                                 (1000.0 - self.shipheight))**2.0
 
-            # shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
-            #     abs(x_distance)
-            # shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
-            #                                                                  (1000.0 - self.shipheight))**2.0
-            # Stage 1
             shaping += CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
