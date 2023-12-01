@@ -53,8 +53,8 @@ def linear_schedule(initial_value: float = LR_INIT) -> Callable[[float], float]:
 
 
 level = 0
-test_level = 0
-# test_level = 9
+# test_level = 0
+test_level = 9
 
 train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
 eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))
@@ -116,6 +116,28 @@ test_logger = open(os.path.join(
 test_logger.write(
     "iteration,level,test_reward,test_episode_length,test_successful\n")
 
+
+def run_test(level, test_env, test_model):
+    print(f">>>> Testing {level}")
+    test_rewards = []
+    test_epi_lengths = []
+    test_successes = []
+    for _ in range(50):
+        test_reward, test_epi_len, test_successful = play(test_env, test_model)
+        test_rewards.append(test_reward)
+        test_epi_lengths.append(test_epi_len)
+        test_successes.append(test_successful)
+
+        test_logger.write(
+            f"{timestamp},{level},{test_reward},{test_epi_len},{test_successful}\n")
+    test_logger.flush()
+
+    test_mean_reward = np.mean(test_rewards)
+    test_mean_epi_len = np.mean(test_epi_lengths)
+    test_success_rate = np.mean(test_successes)
+    return test_mean_reward, test_mean_epi_len, test_success_rate
+
+
 highest_reward = -5.0
 plateau = 0
 while True:
@@ -137,23 +159,11 @@ while True:
 
     print(f"Testing model: {latest_model_path}")
     test_model = PPO.load(latest_model_path, device="cpu")
-
-    test_rewards = []
-    test_epi_lengths = []
-    test_successes = []
-    for _ in range(50):
-        test_reward, test_epi_len, test_successful = play(test_env, test_model)
-        test_rewards.append(test_reward)
-        test_epi_lengths.append(test_epi_len)
-        test_successes.append(test_successful)
-
-        test_logger.write(
-            f"{timestamp},{level},{test_reward},{test_epi_len},{test_successful}\n")
-    test_logger.flush()
-
-    test_mean_reward = np.mean(test_rewards)
-    test_mean_epi_len = np.mean(test_epi_lengths)
-    test_success_rate = np.mean(test_successes)
+    # Increment level based on eval metrics (current level) did not lead to faster convergence.
+    # eval_mean_reward, eval_mean_epi_len, eval_success_rate = run_test(
+    #     f"Level {level}", eval_env, test_model)
+    test_mean_reward, test_mean_epi_len, test_success_rate = run_test(
+        f"Level {test_level}", test_env, test_model)
 
     agg_test_logger.write(
         f"{timestamp},{level},{test_mean_reward},{test_mean_epi_len},{test_success_rate}\n")
@@ -170,8 +180,10 @@ while True:
             save_path, f"best_curriculum_learning_model_{level}_final"))
         break
     elif test_mean_reward >= highest_reward:
+    # elif test_mean_reward >= highest_reward or eval_success_rate > 0.8:
         print(
             f">>>>> Found a better model: old reward {highest_reward}, new reward {test_mean_reward}")
+        # print(f">>>>> Eval success rate: {eval_success_rate}")
         print(f">>>>> Timestamp: {timestamp}")
         print(f">>>>> Level: {level}")
         print(f">>>>> Mean reward: {test_mean_reward}")

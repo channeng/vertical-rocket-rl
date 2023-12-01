@@ -79,10 +79,10 @@ VIEWPORT_W = 350
 DEBUG = True
 
 CURRICULUM_PARAMS = []
-num_levels = 1
-# num_levels = 10
+# num_levels = 1
+num_levels = 10
 for i in range(num_levels):
-    i = 0
+    # i = 0
     CURRICULUM_PARAMS.append({
         'level': i,
         'angle': 1.5,
@@ -99,9 +99,12 @@ for i in range(num_levels):
 
         'start_height': 300.0,
         'start_speed': 10.0 + i * (20.0 - 10.0) / num_levels,
+        # 'wind_power': 10,
+        # 'wind_turbulence_power': 0.1,
+        # 'leg_sesitivity': 0.01,
         'wind_power': 0.0 + i * (20.0 - 0.0) / num_levels,
-        'wind_turbulence_power': 0.0 + i * (2.0 - 0.0) / num_levels,
-        'leg_sesitivity': 0.01 + i * (0.01 - 0.1) / num_levels,
+        'wind_turbulence_power': 0 + i * (2.0 - 0.0) / num_levels,
+        'leg_sesitivity': 0.1 + i * (0.01 - 0.1) / num_levels,
         'initial_x_random': 0.1 + i * (0.3 - 0.1) / num_levels,
         'random_velocity_factor': 0.1 + i * (0.3 - 0.1) / num_levels,
         'random_angular_velocity_factor': 0.1 + i * (0.3 - 0.1) / num_levels,
