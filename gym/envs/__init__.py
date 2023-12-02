@@ -1,5 +1,6 @@
 from gymnasium.envs.registration import register
 
+
 register(
     id='VerticalRocket-v1-lvl0',
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
@@ -79,4 +80,39 @@ register(
     kwargs={'level_number': 9},
 )
 
+register(
+    id='VerticalRocket-v1-stage1',
+    entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
+    max_episode_steps=2000,
+    reward_threshold=10,
+    kwargs={'stage': 1, 'curriculum': False, 'level_number': 0,
+            'has_additional_constraints': False},
+)
+
+register(
+    id='VerticalRocket-v1-stage2',
+    entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
+    max_episode_steps=2000,
+    reward_threshold=10,
+    kwargs={'stage': 2, 'curriculum': False, 'level_number': 0,
+            'has_additional_constraints': False},
+)
+
+register(
+    id='VerticalRocket-v1-stage3',
+    entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
+    max_episode_steps=2000,
+    reward_threshold=10,
+    kwargs={'stage': 3, 'curriculum': False, 'level_number': 0,
+            'has_additional_constraints': False},
+)
+
+register(
+    id='VerticalRocket-v1-stage4',
+    entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
+    max_episode_steps=2000,
+    reward_threshold=10,
+    kwargs={'stage': 4, 'curriculum': False, 'level_number': 0,
+            'has_additional_constraints': False},
+)
 print(">>>>>>>>>>>>>>>>>>>> Registered VerticalRocket-v1 <<<<<<<<<<<<<<<<<<<<")

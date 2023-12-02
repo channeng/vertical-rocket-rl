@@ -78,40 +78,6 @@ VIEWPORT_W = 350
 
 DEBUG = True
 
-CURRICULUM_PARAMS = []
-# num_levels = 1
-num_levels = 10
-for i in range(num_levels):
-    # i = 0
-    CURRICULUM_PARAMS.append({
-        'level': i,
-        'angle': 1.5,
-        'vel_a': 1.0,
-        'vel_l0': 2.0,
-        'vel_l1': 3.0,
-        'speed': 2.0,
-        'speed_threshold': 0.05,
-        'x_distance': 2.0,
-        'y_distance': 3.0,
-        'distance': 2.0,
-        'ground_contact': 0.5,
-        'time_limit': 2000,
-
-        'start_height': 300.0,
-        'start_speed': 10.0 + i * (20.0 - 10.0) / num_levels,
-        # 'wind_power': 10,
-        # 'wind_turbulence_power': 0.1,
-        # 'leg_sesitivity': 0.01,
-        'wind_power': 0.0 + i * (20.0 - 0.0) / num_levels,
-        'wind_turbulence_power': 0 + i * (2.0 - 0.0) / num_levels,
-        'leg_sesitivity': 0.1 + i * (0.01 - 0.1) / num_levels,
-        'initial_x_random': 0.1 + i * (0.3 - 0.1) / num_levels,
-        'random_velocity_factor': 0.1 + i * (0.3 - 0.1) / num_levels,
-        'random_angular_velocity_factor': 0.1 + i * (0.3 - 0.1) / num_levels,
-    })
-
-print(CURRICULUM_PARAMS)
-
 
 class ContactDetector(contactListener):
     def __init__(self, env):
@@ -140,9 +106,10 @@ class ContactDetector(contactListener):
 class VerticalRocket(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": FPS}
 
-    def __init__(self, level_number=0, continuous=True):
+    def __init__(self, curriculum=True, stage=4, level_number=0, continuous=True, has_additional_constraints=True):
         super(VerticalRocket, self).__init__()
-        self.stage = 3
+        self._setup_curriculum_params(curriculum, has_additional_constraints)
+        self.stage = stage
         self.env_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         self.run_index = 0
         self.level_number = level_number
@@ -191,6 +158,63 @@ class VerticalRocket(gym.Env):
 
         self.reset()
 
+    def _setup_curriculum_params(self, use_curriculum, has_additional_constraints):
+        self.CURRICULUM_PARAMS = []
+
+        if use_curriculum:
+            num_levels = 10
+        else:
+            num_levels = 1
+
+        for i in range(num_levels):
+            # By default, wind and legs sensitivity will increase with increase in level i
+            wind_power = 0.0 + i * (20.0 - 0.0) / num_levels
+            wind_turbulence = 0 + i * (2.0 - 0.0) / num_levels
+            leg_sensitivity = 0.1 + i * (0.01 - 0.1) / num_levels
+
+            if not use_curriculum:
+                # If curriculum learning is not used,
+                # set wind and legs sensitivity as constants at level i = 9
+                i = 0
+                wind_power = 10
+                wind_turbulence = 0.1
+                leg_sensitivity = 0.01
+
+            if not has_additional_constraints:
+                # If additional constraints not required,
+                # set wind to 0 and leg sensitivity to 0.1
+                print("No wind and legs sensitive = 0.1")
+                wind_power = 0
+                wind_turbulence = 0
+                leg_sensitivity = 0.1
+
+            self.CURRICULUM_PARAMS.append({
+                'level': i,
+                'angle': 1.5,
+                'vel_a': 1.0,
+                'vel_l0': 2.0,
+                'vel_l1': 3.0,
+                'speed': 2.0,
+                'speed_threshold': 0.05,
+                'x_distance': 2.0,
+                'y_distance': 3.0,
+                'distance': 2.0,
+                'ground_contact': 0.5,
+                'time_limit': 2000,
+                'start_height': 300.0,
+                'start_speed': 10.0 + i * (20.0 - 10.0) / num_levels,
+
+                'wind_power': wind_power,
+                'wind_turbulence_power': wind_turbulence,
+                'leg_sesitivity': leg_sensitivity,
+
+                'initial_x_random': 0.1 + i * (0.3 - 0.1) / num_levels,
+                'random_velocity_factor': 0.1 + i * (0.3 - 0.1) / num_levels,
+                'random_angular_velocity_factor': 0.1 + i * (0.3 - 0.1) / num_levels,
+            })
+
+        print(self.CURRICULUM_PARAMS)
+
     def _destroy(self):
         if not self.water:
             return
@@ -217,14 +241,14 @@ class VerticalRocket(gym.Env):
 
         self.run_index += 1
 
-        self.START_HEIGHT = CURRICULUM_PARAMS[self.level_number]['start_height']
-        self.START_SPEED = CURRICULUM_PARAMS[self.level_number]['start_speed']
-        self.wind_power = CURRICULUM_PARAMS[self.level_number]['wind_power']
-        self.wind_turbulence_power = CURRICULUM_PARAMS[self.level_number]['wind_turbulence_power']
-        self.leg_sesitivity = CURRICULUM_PARAMS[self.level_number]['leg_sesitivity']
-        self.initial_x_random = CURRICULUM_PARAMS[self.level_number]['initial_x_random']
-        self.random_velocity_factor = CURRICULUM_PARAMS[self.level_number]['random_velocity_factor']
-        self.random_angular_velocity_factor = CURRICULUM_PARAMS[
+        self.START_HEIGHT = self.CURRICULUM_PARAMS[self.level_number]['start_height']
+        self.START_SPEED = self.CURRICULUM_PARAMS[self.level_number]['start_speed']
+        self.wind_power = self.CURRICULUM_PARAMS[self.level_number]['wind_power']
+        self.wind_turbulence_power = self.CURRICULUM_PARAMS[self.level_number]['wind_turbulence_power']
+        self.leg_sesitivity = self.CURRICULUM_PARAMS[self.level_number]['leg_sesitivity']
+        self.initial_x_random = self.CURRICULUM_PARAMS[self.level_number]['initial_x_random']
+        self.random_velocity_factor = self.CURRICULUM_PARAMS[self.level_number]['random_velocity_factor']
+        self.random_angular_velocity_factor = self.CURRICULUM_PARAMS[
             self.level_number]['random_angular_velocity_factor']
 
         self.H = 1.1 * self.START_HEIGHT * SCALE_S
@@ -472,7 +496,7 @@ class VerticalRocket(gym.Env):
             impulse=force_c, point=force_pos_c, wake=False)
 
         # Wind
-        if CURRICULUM_PARAMS[self.level_number]['wind_power'] > 0.0 and not (self.legs[0].ground_contact or self.legs[1].ground_contact):
+        if self.CURRICULUM_PARAMS[self.level_number]['wind_power'] > 0.0 and not (self.legs[0].ground_contact or self.legs[1].ground_contact):
             wind_mag = (
                 np.tanh(
                     np.sin(0.02 * self.wind_idx) +
@@ -557,7 +581,7 @@ class VerticalRocket(gym.Env):
             info['is_success'] = False
             reward = -5.0
             print('Outside!')
-        elif vel_l[1] > CURRICULUM_PARAMS[self.level_number]['speed_threshold']:
+        elif vel_l[1] > self.CURRICULUM_PARAMS[self.level_number]['speed_threshold']:
             done = True
             info['is_success'] = False
             reward = -5.0
@@ -566,21 +590,21 @@ class VerticalRocket(gym.Env):
             done = True
             info['is_success'] = False
 
-            reward = max(-3.0, -3.0 * (CURRICULUM_PARAMS[self.level_number]['vel_l0'] * abs(vel_l[0])
-                                       + CURRICULUM_PARAMS[self.level_number]['x_distance'] * abs(x_distance)
-                                       + CURRICULUM_PARAMS[self.level_number]['angle'] * abs(angle)
-                                       + CURRICULUM_PARAMS[self.level_number]['vel_a'] * abs(vel_a)))
+            reward = max(-3.0, -3.0 * (self.CURRICULUM_PARAMS[self.level_number]['vel_l0'] * abs(vel_l[0])
+                                       + self.CURRICULUM_PARAMS[self.level_number]['x_distance'] * abs(x_distance)
+                                       + self.CURRICULUM_PARAMS[self.level_number]['angle'] * abs(angle)
+                                       + self.CURRICULUM_PARAMS[self.level_number]['vel_a'] * abs(vel_a)))
 
             print('Crashed!')
         elif broken_leg:
             done = True
             info['is_success'] = False
 
-            reward = max(-1.0, -1.0 * (CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (self.lander.linearVelocity[1] / 100.0)**2
-                                       + CURRICULUM_PARAMS[self.level_number]['angle'] * abs(angle)))
+            reward = max(-1.0, -1.0 * (self.CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (self.lander.linearVelocity[1] / 100.0)**2
+                                       + self.CURRICULUM_PARAMS[self.level_number]['angle'] * abs(angle)))
 
             print('Broken leg!')
-        elif CURRICULUM_PARAMS[self.level_number]['time_limit'] and self.stepnumber >= CURRICULUM_PARAMS[self.level_number]['time_limit']:
+        elif self.CURRICULUM_PARAMS[self.level_number]['time_limit'] and self.stepnumber >= self.CURRICULUM_PARAMS[self.level_number]['time_limit']:
             done = True
             info['is_success'] = False
 
@@ -606,15 +630,15 @@ class VerticalRocket(gym.Env):
                 # >>>>> Mean reward: 9.53942092188086
                 # >>>>> Mean episode length: 798.64
                 # >>>>> Success rate: 1.0
-                shaping -= CURRICULUM_PARAMS[self.level_number]['angle'] * \
+                shaping -= self.CURRICULUM_PARAMS[self.level_number]['angle'] * \
                     abs(angle)**2
-                shaping -= CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
+                shaping -= self.CURRICULUM_PARAMS[self.level_number]['vel_a'] * \
                     abs(vel_a)
 
-                shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
+                shaping -= self.CURRICULUM_PARAMS[self.level_number]['vel_l0'] * \
                     abs(vel_l[0])
 
-                shaping -= CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
+                shaping -= self.CURRICULUM_PARAMS[self.level_number]['vel_l1'] * (
                     self.lander.linearVelocity[1] / 100.0)**2
 
             if self.stage in (2, 3):
@@ -624,14 +648,14 @@ class VerticalRocket(gym.Env):
                 # >>>>> Mean reward: 9.516773679345247
                 # >>>>> Mean episode length: 761.4
                 # >>>>> Success rate: 1.0
-                shaping -= CURRICULUM_PARAMS[self.level_number]['distance'] * distance
-                shaping -= CURRICULUM_PARAMS[self.level_number]['speed'] * speed
-                shaping -= CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
+                shaping -= self.CURRICULUM_PARAMS[self.level_number]['distance'] * distance
+                shaping -= self.CURRICULUM_PARAMS[self.level_number]['speed'] * speed
+                shaping -= self.CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
                     abs(x_distance)
-                shaping -= CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
+                shaping -= self.CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
                                                                                  (1000.0 - self.shipheight))**2.0
 
-            shaping += CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
+            shaping += self.CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
 
             landed = self.legs[0].ground_contact and self.legs[1].ground_contact

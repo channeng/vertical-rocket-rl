@@ -15,6 +15,11 @@ import re
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--name", required=True, help="Name of the run")
 parser.add_argument("-m", "--initial-model", help="The initial model to load")
+parser.add_argument("-c", "--use_curriculum", action='store_true',
+    help="Whether to run curriculum learning")
+parser.add_argument("-s", "--stage", type=int, default=4,
+    help="Stage determines the level of cumulative reward applied."
+         "Stage 4 applies all rewards.")
 args = parser.parse_args()
 
 MODEL_NAME = "ppo-" + args.name
@@ -53,10 +58,15 @@ def linear_schedule(initial_value: float = LR_INIT) -> Callable[[float], float]:
 
 
 level = 0
-# test_level = 0
-test_level = 9
+if args.use_curriculum and args.stage == 4:
+    test_level = 9
+    train_env_name = f"VerticalRocket-v1-lvl{level}"
+else:
+    test_level = 0
+    train_env_name = f"VerticalRocket-v1-stage{args.stage}"
 
-train_env = make_vec_env(f"VerticalRocket-v1-lvl{level}", n_envs=4)
+print(train_env_name)
+train_env = make_vec_env(train_env_name, n_envs=4)
 eval_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{level}"))
 test_env = Monitor(gym.make(f"VerticalRocket-v1-lvl{test_level}"))
 
