@@ -6,7 +6,8 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 0},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 0,
+            'has_additional_constraints': True},
 )
 
 register(
@@ -14,7 +15,8 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 1},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 1,
+            'has_additional_constraints': True},
 )
 
 register(
@@ -22,7 +24,8 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 2},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 2,
+            'has_additional_constraints': True},
 )
 
 register(
@@ -30,7 +33,8 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 3},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 3,
+            'has_additional_constraints': True},
 )
 
 register(
@@ -38,7 +42,8 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 4},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 4,
+            'has_additional_constraints': True},
 )
 
 register(
@@ -46,7 +51,8 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 5},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 5,
+            'has_additional_constraints': True},
 )
 
 register(
@@ -54,7 +60,8 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 6},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 6,
+            'has_additional_constraints': True},
 )
 
 register(
@@ -62,7 +69,8 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 7},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 7,
+            'has_additional_constraints': True},
 )
 
 register(
@@ -70,14 +78,16 @@ register(
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 8},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 8,
+            'has_additional_constraints': True},
 )
 register(
     id='VerticalRocket-v1-lvl9',
     entry_point='gym.envs.box2d.vertical_rocket:VerticalRocket',
     max_episode_steps=2000,
     reward_threshold=10,
-    kwargs={'level_number': 9},
+    kwargs={'stage': 4, 'curriculum': True, 'level_number': 9,
+            'has_additional_constraints': True},
 )
 
 register(
