@@ -1,6 +1,6 @@
 import gymnasium as gym
 
-env = gym.make('VerticalRocket-v1-lvl2')
+env = gym.make('VerticalRocket-v1-lvl9')
 env.reset()
 
 PRINT_DEBUG_MSG = True
