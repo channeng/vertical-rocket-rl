@@ -62,7 +62,10 @@ In order to see logs of your train run , you can execute command below
 
 ## How to replay with best model
 
-Using a saved pre-trained model, run the command: 
-`python replay.py --name=curriculum-learning`
+To replay a single iteration of the trained agent in a given environment:
+1. Stage 1: `python replay.py --name=stage-1`
+2. Stage 2: `python replay.py --name=stage-2`
+3. Stage 3: `python replay.py --name=stage-3`
+4. Stage 4: `python replay.py --name=stage-4`
 
 To extend the length of the episode, modify `max_episode_steps` in `gym/envs/__init__.py`.
