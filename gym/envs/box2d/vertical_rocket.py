@@ -106,9 +106,10 @@ class ContactDetector(contactListener):
 class VerticalRocket(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": FPS}
 
-    def __init__(self, curriculum=True, stage=4, level_number=0, continuous=True, has_additional_constraints=True):
+    def __init__(self, curriculum=True, stage=4, level_number=0, continuous=True, has_additional_constraints=True, starting_height=300):
         super(VerticalRocket, self).__init__()
-        self._setup_curriculum_params(curriculum, has_additional_constraints)
+        self._setup_curriculum_params(
+            curriculum, has_additional_constraints, starting_height)
         self.stage = stage
         self.env_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         self.run_index = 0
@@ -158,7 +159,7 @@ class VerticalRocket(gym.Env):
 
         self.reset()
 
-    def _setup_curriculum_params(self, use_curriculum, has_additional_constraints):
+    def _setup_curriculum_params(self, use_curriculum, has_additional_constraints, starting_height):
         self.CURRICULUM_PARAMS = []
 
         if use_curriculum:
@@ -201,7 +202,7 @@ class VerticalRocket(gym.Env):
                 'distance': 2.0,
                 'ground_contact': 0.5,
                 'time_limit': 2000,
-                'start_height': 800.0,
+                'start_height': starting_height,
                 'start_speed': 10.0 + i * (20.0 - 10.0) / num_levels,
 
                 'wind_power': wind_power,

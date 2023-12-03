@@ -7,7 +7,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 0,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -16,7 +16,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 1,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -25,7 +25,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 2,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -34,7 +34,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 3,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -43,7 +43,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 4,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -52,7 +52,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 5,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -61,7 +61,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 6,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -70,7 +70,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 7,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -79,7 +79,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 8,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 register(
     id='VerticalRocket-v1-lvl9',
@@ -87,7 +87,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': True, 'level_number': 9,
-            'has_additional_constraints': True},
+            'has_additional_constraints': True, 'starting_height': 400},
 )
 
 register(
@@ -96,7 +96,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 1, 'curriculum': False, 'level_number': 0,
-            'has_additional_constraints': False},
+            'has_additional_constraints': False, 'starting_height': 300},
 )
 
 register(
@@ -105,7 +105,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 2, 'curriculum': False, 'level_number': 0,
-            'has_additional_constraints': False},
+            'has_additional_constraints': False, 'starting_height': 300},
 )
 
 register(
@@ -114,7 +114,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 3, 'curriculum': False, 'level_number': 0,
-            'has_additional_constraints': False},
+            'has_additional_constraints': False, 'starting_height': 300},
 )
 
 register(
@@ -123,6 +123,6 @@ register(
     max_episode_steps=2000,
     reward_threshold=10,
     kwargs={'stage': 4, 'curriculum': False, 'level_number': 0,
-            'has_additional_constraints': False},
+            'has_additional_constraints': False, 'starting_height': 300},
 )
 print(">>>>>>>>>>>>>>>>>>>> Registered VerticalRocket-v1 <<<<<<<<<<<<<<<<<<<<")
