@@ -170,7 +170,7 @@ class VerticalRocket(gym.Env):
             # By default, wind and legs sensitivity will increase with increase in level i
             wind_power = 0.0 + i * (20.0 - 0.0) / num_levels
             wind_turbulence = 0 + i * (2.0 - 0.0) / num_levels
-            leg_sensitivity = 0.1 + i * (0.01 - 0.1) / num_levels
+            leg_sensitivity = 0.1 + i * (0.05 - 0.1) / num_levels
 
             if not use_curriculum:
                 # If curriculum learning is not used,
@@ -201,7 +201,7 @@ class VerticalRocket(gym.Env):
                 'distance': 2.0,
                 'ground_contact': 0.5,
                 'time_limit': 2000,
-                'start_height': 300.0,
+                'start_height': 800.0,
                 'start_speed': 10.0 + i * (20.0 - 10.0) / num_levels,
 
                 'wind_power': wind_power,
@@ -247,7 +247,8 @@ class VerticalRocket(gym.Env):
         self.wind_turbulence_power = self.CURRICULUM_PARAMS[self.level_number]['wind_turbulence_power']
         self.leg_sesitivity = self.CURRICULUM_PARAMS[self.level_number]['leg_sesitivity']
         self.initial_x_random = self.CURRICULUM_PARAMS[self.level_number]['initial_x_random']
-        self.random_velocity_factor = self.CURRICULUM_PARAMS[self.level_number]['random_velocity_factor']
+        self.random_velocity_factor = self.CURRICULUM_PARAMS[
+            self.level_number]['random_velocity_factor']
         self.random_angular_velocity_factor = self.CURRICULUM_PARAMS[
             self.level_number]['random_angular_velocity_factor']
 
@@ -632,7 +633,7 @@ class VerticalRocket(gym.Env):
                 shaping -= self.CURRICULUM_PARAMS[self.level_number]['x_distance'] * \
                     abs(x_distance)
                 shaping -= self.CURRICULUM_PARAMS[self.level_number]['y_distance'] * ((pos.y - self.shipheight) /
-                                                                                 (1000.0 - self.shipheight))**2.0
+                                                                                      (1000.0 - self.shipheight))**2.0
 
             shaping += self.CURRICULUM_PARAMS[self.level_number]['ground_contact'] * \
                 (self.legs[0].ground_contact + self.legs[1].ground_contact)
