@@ -4,3 +4,5 @@
 .cache
 .pytest_cache/
 checkpoints/
+debug/
+.vscode/
